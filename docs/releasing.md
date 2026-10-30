@@ -12,8 +12,8 @@ cargo package --locked
 ```
 
 Workspace commands can use `../../scripts/with-rust`. term-colors 0.2.0 is
-published. The local path supports workspace development; package verification
-must compile against the registry version and its `Style::swatch()` API.
+published. Both standalone source builds and packaged builds use the registry
+version and its `Style::swatch()` API; no sibling repository is required.
 
 Review package contents, license, changelog and README links. Keep local preview
 settings, build artifacts and workspace tooling out of the package.
@@ -44,7 +44,7 @@ frontends and automatic reduced-color adaptation remain future work.
 
 - 36 isolated unit tests pass; the ignored documentation renderer was run separately.
 - Formatting, Clippy with warnings denied, and the build pass.
-- Package verification compiled against published term-colors 0.2.0, not the local path.
+- Package verification compiled against published term-colors 0.2.0, with no local path override.
 - Documentation links and SVG XML were checked locally. README image/document links
   use repository URLs so they remain usable on crates.io after the commit is pushed.
 - The package includes README, license, changelog, user/design/release guides and SVG.

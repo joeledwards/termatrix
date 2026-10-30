@@ -773,6 +773,8 @@ dependencies = [
 [[package]]
 name = "term-colors"
 version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f23e65d9c92a3bc9b6a4d6ac0f75ac7ed949d66380341d1f16a320ddf4eb2057"
 
 [[package]]
 name = "termatrix"
