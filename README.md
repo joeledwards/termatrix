@@ -34,7 +34,8 @@ Christmas, or a mixed palette. Enable **Individual glyph colors** to mix colors
 within each trace. The default is green Katakana with scattered highlights and one color per trace.
 
 The controls resize with your terminal. At 112 columns or wider, a Braille chart
-shows visible glyph coverage over the last minute. Press `?` for a full canvas.
+shows visible glyph coverage over the last ten minutes, with adjustable time
+compression that gives recent activity more space. Press `?` for a full canvas.
 
 ## Preferences
 

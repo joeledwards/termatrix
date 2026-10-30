@@ -5,7 +5,8 @@
 A complete rewrite with a frontend-independent animation model.
 
 - Live controls (`?`) with automatically saved preferences.
-- Resizable layout and a Braille chart of visible glyph coverage.
+- Resizable layout and a Braille chart of visible glyph coverage, with ten minutes
+  of history and live, persisted logarithmic time compression.
 - Independent trace speeds, depth occlusion, density, clumping and lengths.
 - Explicit RGB palettes, two-shade color profiles and per-glyph highlights.
 - Retained alphabet selection, weighted custom colors and startup overrides.

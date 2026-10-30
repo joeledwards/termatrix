@@ -36,7 +36,7 @@ frontends and automatic reduced-color adaptation remain future work.
 
 ## Preparation evidence
 
-- 41 isolated unit tests pass.
+- 45 isolated unit tests pass.
 - Formatting, Clippy with warnings denied, and the build pass.
 - Package verification compiled against published term-colors 0.2.0, with no local path override.
 - Documentation links and the screenshot were checked locally. README image/document links

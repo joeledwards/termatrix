@@ -41,7 +41,7 @@ impl Drop for Restore {
         let _ = restore_output(&mut stdout());
     }
 }
-const FIELDS: [&str; 14] = [
+const FIELDS: [&str; 15] = [
     "Min speed",
     "Max speed",
     "Speed bias",
@@ -56,6 +56,7 @@ const FIELDS: [&str; 14] = [
     "Alphabet",
     "Individual glyph colors",
     "Highlight probability",
+    "Chart compression",
 ];
 const ALPHABETS: [&str; 14] = [
     "all",
@@ -105,6 +106,15 @@ fn value(s: &Settings, i: usize) -> String {
             .unwrap_or_else(|| format!("Custom ({})", s.colors)),
         12 => s.per_glyph_colors.to_string(),
         13 => format!("{:.0}%", s.highlight_probability * 100.),
+        14 => format!(
+            "{:.1}{}",
+            s.chart_compression,
+            if s.chart_compression == 0. {
+                " (linear)"
+            } else {
+                ""
+            }
+        ),
         _ => s.glyph_set.clone(),
     }
 }
@@ -134,6 +144,7 @@ fn edit(s: &mut Settings, i: usize, d: f64) {
         }
         12 => n.per_glyph_colors = !n.per_glyph_colors,
         13 => n.highlight_probability = (n.highlight_probability + d * 0.05).clamp(0., 1.),
+        14 => n.chart_compression = (n.chart_compression + d * 0.5).clamp(0., 10.),
         _ => {
             let p = ALPHABETS
                 .iter()
@@ -441,7 +452,33 @@ fn panel_regions(area: Rect) -> (Rect, Option<Rect>) {
         )),
     )
 }
-fn density_chart<'a>(points: &'a [(f64, f64)], current: f64) -> Chart<'a> {
+fn chart_time_labels(compression: f64, width: u16) -> Vec<Span<'static>> {
+    let count = if width >= 60 { 6 } else { 4 };
+    (0..count)
+        .map(|i| {
+            let age = crate::metrics::position_age(i as f64 / (count - 1) as f64, compression);
+            let label = if i == count - 1 {
+                "now".into()
+            } else if age < 1. {
+                format!("-{age:.1}s")
+            } else {
+                let seconds = age.round() as u64;
+                match (seconds / 60, seconds % 60) {
+                    (0, s) => format!("-{s}s"),
+                    (m, 0) => format!("-{m}m"),
+                    (m, s) => format!("-{m}m{s}s"),
+                }
+            };
+            Span::raw(label)
+        })
+        .collect()
+}
+fn density_chart<'a>(
+    points: &'a [(f64, f64)],
+    current: f64,
+    compression: f64,
+    width: u16,
+) -> Chart<'a> {
     Chart::new(vec![Dataset::default()
         .data(points)
         .marker(ratatui::symbols::Marker::Braille)
@@ -459,8 +496,8 @@ fn density_chart<'a>(points: &'a [(f64, f64)], current: f64) -> Chart<'a> {
     )
     .x_axis(
         Axis::default()
-            .bounds([-60., 0.])
-            .labels(["-60s", "-30s", "now"])
+            .bounds([0., 1.])
+            .labels(chart_time_labels(compression, width))
             .style(Style::default().fg(color('s'))),
     )
     .y_axis(
@@ -509,14 +546,22 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
         if now >= next_frame {
             scene.refresh_colors(&s);
             let elapsed = now.duration_since(started).as_secs_f64();
-            let points = density.points(elapsed);
+            let points = density.points(elapsed, s.chart_compression);
             terminal.draw(|f| {
                 let (panel, canvas) = regions(f.area(), s.panel);
                 f.render_widget(Rain(&scene), canvas);
                 if s.panel {
                     let (controls, chart) = panel_regions(panel);
                     if let Some(area) = chart {
-                        f.render_widget(density_chart(&points, density.current()), area);
+                        f.render_widget(
+                            density_chart(
+                                &points,
+                                density.current(),
+                                s.chart_compression,
+                                area.width,
+                            ),
+                            area,
+                        );
                     }
                     f.render_widget(
                         Controls {
@@ -577,6 +622,25 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn chart_axis_labels_follow_compression_and_available_width() {
+        let labels = |c, w| {
+            chart_time_labels(c, w)
+                .iter()
+                .map(|s| s.content.to_string())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(labels(0., 40), vec!["-10m", "-6m40s", "-3m20s", "now"]);
+        assert_eq!(labels(6., 40), vec!["-10m", "-1m20s", "-10s", "now"]);
+        assert_eq!(labels(6., 60).len(), 6);
+        let mut settings = Settings::default();
+        edit(&mut settings, 14, -1.);
+        assert_eq!(settings.chart_compression, 5.5);
+        for _ in 0..30 {
+            edit(&mut settings, 14, -1.);
+        }
+        assert_eq!(value(&settings, 14), "0.0 (linear)");
+    }
     #[test]
     fn refresh_cap_displays_hertz() {
         let settings = Settings::default();
@@ -836,7 +900,7 @@ mod tests {
         assert!(panel_regions(Rect::new(0, 0, 120, 6)).1.is_none());
         let area = Rect::new(0, 0, 60, 12);
         let mut buffer = Buffer::empty(area);
-        density_chart(&[(-60., 0.), (-30., 70.), (0., 25.)], 25.).render(area, &mut buffer);
+        density_chart(&[(0., 0.), (0.5, 70.), (1., 25.)], 25., 6., 60).render(area, &mut buffer);
         let text: String = buffer.content.iter().map(|c| c.symbol()).collect();
         assert!(text.contains("Visible glyph density 25.0%"));
         assert!(text.chars().any(|c| ('\u{2801}'..='\u{28ff}').contains(&c)));
@@ -924,7 +988,7 @@ mod tests {
             }
         }
         assert_eq!(settings_window(12, 0), 0..8);
-        assert_eq!(settings_window(12, 13), 6..14);
+        assert_eq!(settings_window(12, 14), 7..15);
     }
 
     #[test]

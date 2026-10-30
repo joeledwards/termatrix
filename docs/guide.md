@@ -21,11 +21,16 @@ restores the terminal and exits.
 | Alphabet | Katakana, letters, numbers, symbols, and other character sets |
 | Individual glyph colors | Off (default) chooses colors per trace; On chooses per glyph |
 | Highlight probability | Chance a glyph receives a stable bright/bold accent; 0 disables accents |
+| Chart compression | 0 is linear; higher values expand recent history (0–10, default 6; arrows adjust by 0.5) |
 
 Heads remain white. Hidden traces continue moving and can reappear. Startup is
 empty; coverage grows as traces enter from the top. The chart measures visible
 coverage after occlusion, not the population target controlled by Density.
-It samples at 5 Hz, retains 60 seconds, and counts overlapping glyphs once.
+It samples at 5 Hz, retains ten minutes, and counts overlapping glyphs once.
+The time axis runs from ten minutes ago on the left to now on the right.
+Compression changes the logarithmic time scale immediately without clearing history;
+axis labels show actual ages. Set `chart_compression = 6.0` in TOML or adjust
+Chart compression in the panel. Older files without this setting use 6.0.
 History continues while paused or hidden. Resizing changes the measured area.
 
 ## Saved preferences

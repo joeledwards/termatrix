@@ -22,6 +22,8 @@ pub struct Settings {
     pub glyph_set: String,
     pub canvas_relative: bool,
     pub max_refresh_rate: u16,
+    /// 0 is linear; larger values give more horizontal chart space to recent data.
+    pub chart_compression: f64,
     pub panel: bool,
 }
 impl Default for Settings {
@@ -41,6 +43,7 @@ impl Default for Settings {
             glyph_set: "special".into(),
             canvas_relative: false,
             max_refresh_rate: 60,
+            chart_compression: 6.,
             panel: true,
         }
     }
@@ -77,6 +80,9 @@ impl Settings {
                 "bias must be -1..1, density 0..10, clumping 0..1, mutation_rate 0..10, highlight_probability 0..1".into(),
             );
         }
+        if !self.chart_compression.is_finite() || !(0. ..=10.).contains(&self.chart_compression) {
+            return Err("chart_compression must be finite and between 0 and 10".into());
+        }
         if self.min_length == 0
             || self.min_length > self.max_length
             || self.max_length > 512
@@ -106,6 +112,22 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn chart_compression_defaults_persists_and_validates() {
+        let mut settings: Settings = toml::from_str("").unwrap();
+        assert_eq!(settings.chart_compression, 6.);
+        settings.chart_compression = 3.5;
+        let restored: Settings = toml::from_str(&toml::to_string(&settings).unwrap()).unwrap();
+        assert_eq!(restored.chart_compression, 3.5);
+        for invalid in [-1., 11., f64::NAN, f64::INFINITY] {
+            settings.chart_compression = invalid;
+            assert!(settings.validate().is_err());
+        }
+        for valid in [0., 10.] {
+            settings.chart_compression = valid;
+            settings.validate().unwrap();
+        }
+    }
     #[test]
     fn individual_colors_default_off_and_preserve_saved_choice() {
         assert!(!Settings::default().per_glyph_colors);

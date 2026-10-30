@@ -7,6 +7,8 @@
 | Compiled speed limits, UI clamping, obsolete settings migration and save cleanup | `settings::tests::speed_hard_limits_are_internal_and_validated`, `terminal::tests::speed_controls_clamp_at_compiled_limits`, `persistence::tests::obsolete_limits_load_but_are_not_saved_or_enforced` |
 | Chart sampling cadence, bounded history, empty canvas and occlusion accounting | `metrics::tests::sampling_is_bounded_independent_and_handles_empty_canvas`, `overlapping_traces_count_only_once` |
 | Refresh cap displays Hz with rate styling | `terminal::tests::refresh_cap_displays_hertz` |
+| Persisted compression defaults, bounds and round-trip | `settings::tests::chart_compression_defaults_persists_and_validates` |
+| Logarithmic time scale, inverse labels, preserved live history and control editing | `metrics::tests::compression_preserves_endpoints_order_and_expands_recent_history`, `live_compression_keeps_history_and_density_values`, `terminal::tests::chart_axis_labels_follow_compression_and_available_width` |
 | Responsive chart layout and Braille line output | `terminal::tests::chart_layout_and_braille_rendering` |
 | Settings serialization, invalid ranges, equal speed bounds | `settings::tests::config_round_trip_and_validation` |
 | Rate distribution endpoints, bias and ordering | `settings::tests::bias_preserves_bounds_and_order` |
