@@ -21,6 +21,10 @@ fn load_default_in(root: &Path) -> io::Result<(PathBuf, Settings)> {
 pub fn load(path: &Path) -> io::Result<Settings> {
     Ok(load_optional(path)?.unwrap_or_default())
 }
+pub fn load_required(path: &Path) -> io::Result<Settings> {
+    load_optional(path)?
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Profile no longer exists"))
+}
 fn load_optional(path: &Path) -> io::Result<Option<Settings>> {
     match fs::read_to_string(path) {
         Ok(text) => {
@@ -37,6 +41,12 @@ fn load_optional(path: &Path) -> io::Result<Option<Settings>> {
     }
 }
 pub fn save(path: &Path, settings: &Settings) -> io::Result<()> {
+    write_settings(path, settings, false)
+}
+pub fn create(path: &Path, settings: &Settings) -> io::Result<()> {
+    write_settings(path, settings, true)
+}
+fn write_settings(path: &Path, settings: &Settings, new: bool) -> io::Result<()> {
     settings.validate().map_err(io::Error::other)?;
     let parent = path
         .parent()
@@ -50,12 +60,31 @@ pub fn save(path: &Path, settings: &Settings) -> io::Result<()> {
             .as_bytes(),
     )?;
     temporary.as_file().sync_all()?;
-    temporary.persist(path).map_err(|e| e.error)?;
+    if new {
+        temporary.persist_noclobber(path).map_err(|e| e.error)?;
+    } else {
+        temporary.persist(path).map_err(|e| e.error)?;
+    }
     Ok(())
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn create_never_overwrites_and_cleans_temporary_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("night.toml");
+        create(&path, &Settings::default()).unwrap();
+        let original = fs::read(&path).unwrap();
+        let changed = Settings {
+            colors: "rR".into(),
+            ..Settings::default()
+        };
+        assert!(create(&path, &changed).is_err());
+        assert_eq!(fs::read(&path).unwrap(), original);
+        assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 1);
+        assert!(load_required(&dir.path().join("missing.toml")).is_err());
+    }
     #[test]
     fn default_profile_location_and_legacy_fallback() {
         let dir = tempfile::tempdir().unwrap();

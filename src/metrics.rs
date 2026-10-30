@@ -46,7 +46,10 @@ impl DensityHistory {
         } else {
             orthographic(scene).len() as f64 / positions as f64 * 100.
         };
-        self.samples.push_back((now, density));
+        self.record(now, density);
+    }
+    fn record(&mut self, now: f64, value: f64) {
+        self.samples.push_back((now, value));
         while self.samples.len() > CAPACITY
             || self.samples.front().is_some_and(|(t, _)| *t < now - WINDOW)
         {
@@ -64,10 +67,74 @@ impl DensityHistory {
         self.samples.back().map_or(0., |(_, v)| *v)
     }
 }
+/// Render cadence and active work, aggregated between telemetry samples.
+#[derive(Default)]
+pub struct PerformanceHistory {
+    pub traces: DensityHistory,
+    pub fps: DensityHistory,
+    pub work: DensityHistory,
+    last_sample: f64,
+    frames: usize,
+    work_seconds: f64,
+}
+impl PerformanceHistory {
+    pub fn frame(&mut self, work_seconds: f64) {
+        self.frames += 1;
+        self.work_seconds += work_seconds;
+    }
+    pub fn sample(&mut self, now: f64, traces: usize) {
+        let elapsed = now - self.last_sample;
+        if elapsed < INTERVAL {
+            return;
+        }
+        self.traces.record(now, traces as f64);
+        self.fps.record(now, self.frames as f64 / elapsed);
+        self.work.record(
+            now,
+            if self.frames == 0 {
+                0.
+            } else {
+                self.work_seconds * 1000. / self.frames as f64
+            },
+        );
+        self.last_sample = now;
+        self.frames = 0;
+        self.work_seconds = 0.;
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
     use termatrix::settings::Settings;
+    #[test]
+    fn performance_aggregates_frames_over_wall_time_and_keeps_shared_history() {
+        let mut metrics = PerformanceHistory::default();
+        metrics.frame(0.002);
+        metrics.frame(0.004);
+        metrics.sample(0.1, 10);
+        assert!(metrics.fps.points(0.1, 6.).is_empty());
+        metrics.sample(0.25, 12);
+        assert_eq!(metrics.fps.current(), 8.);
+        assert_eq!(metrics.work.current(), 3.);
+        assert_eq!(metrics.traces.current(), 12.);
+        metrics.sample(0.5, 7);
+        assert_eq!(metrics.fps.current(), 0.);
+        assert_eq!(metrics.work.current(), 0.);
+        for i in 3..4000 {
+            metrics.sample(i as f64 * 0.25, i);
+        }
+        let traces = metrics.traces.points(1000., 6.);
+        let fps = metrics.fps.points(1000., 6.);
+        let work = metrics.work.points(1000., 6.);
+        assert!(traces.len() <= CAPACITY);
+        assert!(traces.len() < 2500);
+        assert_eq!(traces.len(), fps.len());
+        assert_eq!(fps.len(), work.len());
+        for ((t, f), w) in traces.iter().zip(&fps).zip(&work) {
+            assert_eq!(t.0, f.0);
+            assert_eq!(f.0, w.0);
+        }
+    }
     #[test]
     fn compression_preserves_endpoints_order_and_expands_recent_history() {
         for compression in [0., 1e-10, 1., 6., 10.] {

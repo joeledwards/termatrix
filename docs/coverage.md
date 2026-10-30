@@ -2,6 +2,10 @@
 
 | Behavior | Isolated unit coverage |
 | --- | --- |
+| Profile discovery/filtering, keyboard navigation, creation editing, cancellation, portable names and semantic modal colors (keys/descriptions/names/create/errors) | `profiles::tests::discovery_filters_sorts_and_selects_current_with_scrolling`, `empty_directory_creation_editing_errors_and_cancellation`, `profile_names_are_portable_and_cannot_escape_directory`, `picker_renders_selected_profile_creation_and_errors` |
+| Profile switch/copy, old-profile save, invalid/missing destinations and failure preservation | `terminal::tests::profile_switch_saves_pending_and_loads_or_copies_settings`, `failed_profile_changes_preserve_active_path_settings_and_pending_save` |
+| Exclusive atomic creation and temporary cleanup | `persistence::tests::create_never_overwrites_and_cleans_temporary_files` |
+| Profile name from filename stem, Unicode/custom paths, fallback and save-status text/colors | `terminal::tests::profile_label_uses_filename_stem_without_exposing_directory`, `palette_toggle_and_save_status_have_text_and_color`, `control_styles_preserve_plain_text_and_selection` |
 | Individual colors default off; saved true values preserved | `settings::tests::individual_colors_default_off_and_preserve_saved_choice` |
 | Fresh special alphabet defaults; saved choices preserved | `settings::tests::fresh_defaults_use_special_and_saved_choice_wins` |
 | Compiled speed limits, UI clamping, obsolete settings migration and save cleanup | `settings::tests::speed_hard_limits_are_internal_and_validated`, `terminal::tests::speed_controls_clamp_at_compiled_limits`, `persistence::tests::obsolete_limits_load_but_are_not_saved_or_enforced` |
@@ -9,6 +13,8 @@
 | Refresh cap displays Hz with rate styling | `terminal::tests::refresh_cap_displays_hertz` |
 | Persisted compression defaults, bounds and round-trip | `settings::tests::chart_compression_defaults_persists_and_validates` |
 | Logarithmic time scale, inverse labels, preserved live history and control editing | `metrics::tests::compression_preserves_endpoints_order_and_expands_recent_history`, `live_compression_keeps_history_and_density_values`, `terminal::tests::chart_axis_labels_follow_compression_and_available_width` |
+| Performance cadence, frame-work averages, empty intervals and aligned bounded histories | `metrics::tests::performance_aggregates_frames_over_wall_time_and_keeps_shared_history` |
+| Performance width thresholds, summary rendering, frame-work/coverage/trace plot priority and control separation | `terminal::tests::performance_layout_uses_remaining_width_and_adds_plots`, `chart_layout_and_braille_rendering`, `control_styles_preserve_plain_text_and_selection` |
 | Responsive chart layout and Braille line output | `terminal::tests::chart_layout_and_braille_rendering` |
 | Settings serialization, invalid ranges, equal speed bounds | `settings::tests::config_round_trip_and_validation` |
 | Rate distribution endpoints, bias and ordering | `settings::tests::bias_preserves_bounds_and_order` |
@@ -20,6 +26,7 @@
 | Depth ordering, non-destructive occlusion and background reveal | `projection::tests::occlusion_is_non_destructive_and_reveals_background` |
 | Live controls stay within validated limits | `terminal::tests::controls_validate` |
 | 12-row panel, tiny layouts, hidden panel, scrolling selection | `terminal::tests::tiny_layout`, `panel_shows_eight_settings_and_keeps_selection_visible` |
+| Explicit RGB tails across palettes, no dim attribute, unchanged bodies/heads/accents | `terminal::tests::rendered_tails_use_explicit_rgb_without_dim_and_preserve_accents` |
 | Green default, live stable highlighting, probability endpoints and projected accents | `model::tests::highlight_probability_is_live_stable_and_projected`, `terminal::tests::green_shades_and_highlight_have_explicit_contrast` |
 | Two-shade Blue/Purple/Yellow/Orange palette sampling and RGB contrast | `terminal::tests::individual_profiles_have_two_distinct_shades` |
 | Green/Blue labels, two red shades and named profiles | `terminal::tests::named_color_profiles_are_selectable_and_valid` |

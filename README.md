@@ -23,6 +23,7 @@ visually checked by the developer on their terminal. Run `termatrix --help` for 
 | Key | Action |
 | --- | --- |
 | `?` | Show or hide controls |
+| `p` | Select or create a configuration profile |
 | `↑` / `↓` | Select a setting |
 | `←` / `→` | Adjust the selected setting |
 | Space | Pause or resume |
@@ -33,9 +34,10 @@ Choose two-shade Green, Blue, Red, Purple, Yellow, Orange, or Grey; try Rainbow,
 Christmas, or a mixed palette. Enable **Individual glyph colors** to mix colors
 within each trace. The default is green Katakana with scattered highlights and one color per trace.
 
-The controls resize with your terminal. At 112 columns or wider, a Braille chart
-shows visible glyph coverage over the last ten minutes, with adjustable time
-compression that gives recent activity more space. Press `?` for a full canvas.
+The controls resize with your terminal. The performance section shows trace count,
+actual FPS, and frame work time. Wider terminals add Braille charts for frame work,
+coverage, and trace count, sharing ten minutes of history and adjustable time
+compression. Press `?` for a full canvas.
 
 ## Preferences
 
@@ -43,7 +45,8 @@ Settings live in your platform's configuration directory under
 `termatrix/profiles/default.toml`—usually
 `~/.config/termatrix/profiles/default.toml` on Linux or
 `~/Library/Application Support/termatrix/profiles/default.toml` on macOS.
-The file is created on your first change. Named-profile management is planned.
+The file is created on your first change. Press `p` to select another profile,
+or `n` inside the picker to save your current settings under a new name.
 
 ```sh
 termatrix --config ./my-rain.toml

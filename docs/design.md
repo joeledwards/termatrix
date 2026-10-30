@@ -30,7 +30,8 @@
   recolor all existing glyphs immediately, including while paused. Alphabet
   changes also affect subsequent glyph emissions and mutations in existing traces.
   Mutation is a per-glyph time-based rate, independent of rendering.
-- White bold heads and dim tails are fixed appearance rules. Selected body/tail
+- White bold heads and darker tails are fixed appearance rules. Tail RGB channels
+  are scaled to 60% (rounded), without the terminal-dependent dim attribute. Selected body/tail
   glyphs are highlighted with bold and an explicitly brighter RGB shade.
   `highlight_probability` (0–1, default 0.12) adjusts this live; each glyph
   retains its random highlight percentile through mutation and palette changes. The

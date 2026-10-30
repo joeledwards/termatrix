@@ -1,5 +1,6 @@
 mod metrics;
 mod persistence;
+mod profiles;
 mod terminal;
 use clap::Parser;
 use std::{

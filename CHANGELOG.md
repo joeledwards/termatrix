@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.1.0
+
+- Add a `p` profile picker with live switching and creation from current settings,
+  with distinct colors for keys, descriptions, names, creation and errors.
+- Show the configuration profile name instead of its full path, retaining save feedback.
+- Render tails with explicit darker RGB colors rather than terminal-dependent dim styling.
+- Give remaining panel width to performance, with trace count, actual FPS and
+  frame work time; prioritize frame-work, then coverage, then trace-count plots as space allows.
+
+Existing 3.0 settings and command-line options remain compatible. Profile selection
+applies during the current session; startup still uses the default or `--config`.
+
 ## 3.0.0
 
 A complete rewrite with a frontend-independent animation model.

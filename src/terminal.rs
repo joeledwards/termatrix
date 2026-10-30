@@ -210,6 +210,16 @@ fn brighten(c: Color) -> Color {
         _ => c,
     }
 }
+/// Explicit shading avoids emulator-dependent SGR dim behavior for truecolor.
+fn tail_color(c: Color) -> Color {
+    match c {
+        Color::Rgb(r, g, b) => {
+            let shade = |v: u8| (v as f64 * 0.6).round() as u8;
+            Color::Rgb(shade(r), shade(g), shade(b))
+        }
+        _ => c,
+    }
+}
 struct Rain<'a>(&'a Scene);
 impl Widget for Rain<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
@@ -222,9 +232,7 @@ impl Widget for Rain<'_> {
             use termatrix::projection::Highlight;
             let style = match sample.highlight {
                 Highlight::Head => Style::default().fg(color('w')).add_modifier(Modifier::BOLD),
-                Highlight::Tail => Style::default()
-                    .fg(color(sample.color))
-                    .add_modifier(Modifier::DIM),
+                Highlight::Tail => Style::default().fg(tail_color(color(sample.color))),
                 Highlight::Accent => Style::default()
                     .fg(brighten(color(sample.color)))
                     .add_modifier(Modifier::BOLD),
@@ -293,7 +301,6 @@ impl SaveState {
 struct Controls<'a> {
     settings: &'a Settings,
     selected: usize,
-    traces: usize,
     paused: bool,
     path: &'a std::path::Path,
     status: &'a SaveStatus,
@@ -307,16 +314,15 @@ impl Controls<'_> {
         let mut hints = Vec::new();
         for (key, meaning) in [
             ("?", " controls | "),
+            ("p", " profiles | "),
             ("↑↓", " select "),
             ("←→", " adjust | "),
             ("Space", " pause | "),
-            ("q", " quit | "),
+            ("q", " quit"),
         ] {
             hints.push(Span::styled(key, yellow));
             hints.push(Span::styled(meaning, grey));
         }
-        hints.push(Span::styled(self.traces.to_string(), orange));
-        hints.push(Span::styled(" traces", grey));
         if self.paused {
             hints.push(Span::styled(" | Paused", yellow));
         }
@@ -390,31 +396,32 @@ impl Controls<'_> {
                 Style::default()
             }));
         }
-        let (label, style) = if self.pending {
-            ("Pending: ", yellow)
+        let name = self
+            .path
+            .file_stem()
+            .filter(|name| !name.is_empty())
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "default".into());
+        let mut status = vec![
+            Span::styled("Config Profile: ", Style::default().fg(color('m'))),
+            Span::styled(name, yellow),
+        ];
+        if self.pending {
+            status.push(Span::styled(" · Pending", yellow));
         } else {
             match self.status {
-                SaveStatus::Config => ("Config: ", grey),
-                SaveStatus::Saved => ("Saved: ", Style::default().fg(color('g'))),
+                SaveStatus::Config => {}
+                SaveStatus::Saved => {
+                    status.push(Span::styled(" · Saved", Style::default().fg(color('g'))))
+                }
                 SaveStatus::Failed(error) => {
-                    lines.push(Line::from(vec![
-                        Span::styled("Save failed: ", Style::default().fg(color('r'))),
-                        Span::raw(error.clone()),
-                    ]));
-                    return lines;
+                    status.push(Span::styled(
+                        " · Save failed: ",
+                        Style::default().fg(color('r')),
+                    ));
+                    status.push(Span::raw(error.clone()));
                 }
             }
-        };
-        let mut status = vec![Span::styled(label, style)];
-        if let Some(parent) = self.path.parent().filter(|p| !p.as_os_str().is_empty()) {
-            let mut prefix = parent.to_string_lossy().into_owned();
-            if !prefix.ends_with(std::path::MAIN_SEPARATOR) {
-                prefix.push(std::path::MAIN_SEPARATOR);
-            }
-            status.push(Span::styled(prefix, Style::default().fg(color('m'))));
-        }
-        if let Some(name) = self.path.file_name() {
-            status.push(Span::styled(name.to_string_lossy().into_owned(), yellow));
         }
         lines.push(Line::from(status));
         lines
@@ -437,21 +444,47 @@ impl Widget for Controls<'_> {
     }
 }
 fn panel_regions(area: Rect) -> (Rect, Option<Rect>) {
-    if area.width < 112 || area.height < 7 {
+    if area.height < 7 {
         return (area, None);
     }
-    let chart_width = (area.width / 3).clamp(40, 60);
-    let controls = Rect::new(area.x, area.y, area.width - chart_width, area.height);
+    if area.width < 96 {
+        let controls = Rect::new(area.x, area.y, area.width, area.height - 2);
+        return (
+            controls,
+            Some(Rect::new(area.x, controls.bottom(), area.width, 2)),
+        );
+    }
+    let controls = Rect::new(area.x, area.y, 72, area.height);
     (
         controls,
         Some(Rect::new(
             controls.right(),
             area.y,
-            chart_width,
+            area.width - 72,
             area.height,
         )),
     )
 }
+fn plot_regions(area: Rect) -> Vec<Rect> {
+    if area.width < 40 || area.height < 7 {
+        return vec![];
+    }
+    let count = (area.width / 40).clamp(1, 3);
+    let mut x = area.x;
+    (0..count)
+        .map(|i| {
+            let width = if i == count - 1 {
+                area.right() - x
+            } else {
+                area.width / count
+            };
+            let rect = Rect::new(x, area.y, width, area.height);
+            x += width;
+            rect
+        })
+        .collect()
+}
+
 fn chart_time_labels(compression: f64, width: u16) -> Vec<Span<'static>> {
     let count = if width >= 60 { 6 } else { 4 };
     (0..count)
@@ -479,20 +512,48 @@ fn density_chart<'a>(
     compression: f64,
     width: u16,
 ) -> Chart<'a> {
+    metric_chart(
+        points,
+        (
+            format!("Visible glyph density {current:.1}%"),
+            100.,
+            true,
+            'g',
+        ),
+        compression,
+        width,
+    )
+}
+fn metric_chart<'a>(
+    points: &'a [(f64, f64)],
+    (title, maximum, percent, hue): (String, f64, bool, char),
+    compression: f64,
+    width: u16,
+) -> Chart<'a> {
+    let value_start = title
+        .find(|c: char| c.is_ascii_digit())
+        .unwrap_or(title.len());
+    let title = Line::from(vec![
+        Span::styled(
+            title[..value_start].to_owned(),
+            Style::default().fg(color('m')),
+        ),
+        Span::styled(
+            title[value_start..].to_owned(),
+            Style::default().fg(color(if percent { 'o' } else { hue })),
+        ),
+    ]);
     Chart::new(vec![Dataset::default()
         .data(points)
         .marker(ratatui::symbols::Marker::Braille)
         .graph_type(GraphType::Line)
-        .style(Style::default().fg(color('g')))])
+        .style(Style::default().fg(color(hue)))])
     .style(Style::default().fg(color('s')).bg(Color::Rgb(17, 17, 17)))
     .block(
         Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(color('s')))
-            .title(Line::from(vec![
-                Span::styled("Visible glyph density ", Style::default().fg(color('m'))),
-                Span::styled(format!("{current:.1}%"), Style::default().fg(color('o'))),
-            ])),
+            .title(title),
     )
     .x_axis(
         Axis::default()
@@ -502,12 +563,99 @@ fn density_chart<'a>(
     )
     .y_axis(
         Axis::default()
-            .bounds([0., 100.])
-            .labels(["0%", "50%", "100%"])
+            .bounds([0., maximum])
+            .labels(
+                [0., maximum / 2., maximum]
+                    .map(|v| format!("{v:.0}{}", if percent { "%" } else { "" })),
+            )
             .style(Style::default().fg(color('s'))),
     )
 }
-pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
+fn performance(
+    area: Rect,
+    buf: &mut Buffer,
+    density: &crate::metrics::DensityHistory,
+    metrics: &crate::metrics::PerformanceHistory,
+    now: f64,
+    compression: f64,
+    traces: usize,
+) {
+    let summary = Line::from(vec![
+        Span::styled(format!("{traces} traces"), Style::default().fg(color('o'))),
+        Span::raw(" | "),
+        Span::styled(
+            format!("{:.1} FPS", metrics.fps.current()),
+            Style::default().fg(color('y')),
+        ),
+        Span::raw(" | "),
+        Span::styled(
+            format!("{:.2} ms work", metrics.work.current()),
+            Style::default().fg(color('b')),
+        ),
+    ]);
+    let summary_area = Rect::new(area.x, area.y, area.width, 2.min(area.height));
+    Paragraph::new(summary)
+        .wrap(ratatui::widgets::Wrap { trim: true })
+        .render(summary_area, buf);
+    let plots = plot_regions(Rect::new(
+        area.x,
+        summary_area.bottom(),
+        area.width,
+        area.height - summary_area.height,
+    ));
+    for (i, rect) in plots.into_iter().enumerate() {
+        if i == 1 {
+            let points = density.points(now, compression);
+            density_chart(&points, density.current(), compression, rect.width).render(rect, buf);
+        } else {
+            let (history, title, hue) = if i == 2 {
+                (&metrics.traces, format!("Active traces {traces}"), 'o')
+            } else {
+                (
+                    &metrics.work,
+                    format!("Frame work {:.2} ms", metrics.work.current()),
+                    'b',
+                )
+            };
+            let points = history.points(now, compression);
+            let peak = points.iter().map(|p| p.1).fold(1., f64::max);
+            let maximum = (peak * 1.1).ceil();
+            metric_chart(
+                &points,
+                (title, maximum, false, hue),
+                compression,
+                rect.width,
+            )
+            .render(rect, buf);
+        }
+    }
+}
+fn change_profile(
+    settings: &mut Settings,
+    path: &mut PathBuf,
+    saving: &mut SaveState,
+    destination: &std::path::Path,
+    create: bool,
+) -> io::Result<()> {
+    if destination == path && !create {
+        return Ok(());
+    }
+    // Validate the destination before writing or leaving the current profile.
+    let next = if create {
+        settings.clone()
+    } else {
+        persistence::load_required(destination)?
+    };
+    saving.finish(path, settings)?;
+    if create {
+        persistence::create(destination, &next)?;
+    }
+    *settings = next;
+    *path = destination.into();
+    *saving = SaveState::default();
+    Ok(())
+}
+pub fn run(mut s: Settings, mut path: PathBuf, seed: u64) -> io::Result<()> {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         let _ = disable_raw_mode();
@@ -527,8 +675,12 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
     let mut saving = SaveState::default();
     let started = Instant::now();
     let mut density = crate::metrics::DensityHistory::default();
+    let mut metrics = crate::metrics::PerformanceHistory::default();
+    let mut pending_work = Duration::ZERO;
+    let mut picker: Option<crate::profiles::Picker> = None;
     loop {
-        let now = Instant::now();
+        let work_started = Instant::now();
+        let now = work_started;
         let size = terminal.size()?;
         let (_, canvas) = regions(Rect::new(0, 0, size.width, size.height), s.panel);
         scene.resize(canvas.width as usize / 2, canvas.height as usize);
@@ -543,31 +695,33 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
         {
             saving.attempt(&path, &s);
         }
+        metrics.sample(
+            now.duration_since(started).as_secs_f64(),
+            scene.traces.len(),
+        );
         if now >= next_frame {
             scene.refresh_colors(&s);
             let elapsed = now.duration_since(started).as_secs_f64();
-            let points = density.points(elapsed, s.chart_compression);
             terminal.draw(|f| {
                 let (panel, canvas) = regions(f.area(), s.panel);
                 f.render_widget(Rain(&scene), canvas);
                 if s.panel {
                     let (controls, chart) = panel_regions(panel);
                     if let Some(area) = chart {
-                        f.render_widget(
-                            density_chart(
-                                &points,
-                                density.current(),
-                                s.chart_compression,
-                                area.width,
-                            ),
+                        performance(
                             area,
+                            f.buffer_mut(),
+                            &density,
+                            &metrics,
+                            elapsed,
+                            s.chart_compression,
+                            scene.traces.len(),
                         );
                     }
                     f.render_widget(
                         Controls {
                             settings: &s,
                             selected,
-                            traces: scene.traces.len(),
                             paused,
                             path: &path,
                             status: &saving.status,
@@ -576,18 +730,88 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
                         controls,
                     );
                 }
+                if let Some(picker) = &picker {
+                    let a = f.area();
+                    let width = a.width.min(72);
+                    let height = a.height.min(18);
+                    let area = Rect::new(
+                        a.x + (a.width - width) / 2,
+                        a.y + (a.height - height) / 2,
+                        width,
+                        height,
+                    );
+                    picker.render(
+                        area,
+                        f.buffer_mut(),
+                        crate::profiles::PickerColors {
+                            title: color('m'),
+                            key: color('y'),
+                            text: color('w'),
+                            profile: color('b'),
+                            create: color('g'),
+                            error: color('r'),
+                        },
+                    );
+                }
             })?;
+            metrics.frame((pending_work + work_started.elapsed()).as_secs_f64());
+            pending_work = Duration::ZERO;
             next_frame = now + Duration::from_secs_f64(1. / s.max_refresh_rate as f64);
+        } else {
+            pending_work += work_started.elapsed();
         }
         if event::poll(
             next_frame
                 .saturating_duration_since(Instant::now())
                 .min(Duration::from_millis(10)),
         )? {
-            match event::read()? {
+            let input = event::read()?;
+            if let Event::Key(k) = input {
+                if k.kind != KeyEventKind::Release
+                    && picker.is_some()
+                    && !(k.code == KeyCode::Char('c')
+                        && k.modifiers.contains(KeyModifiers::CONTROL))
+                {
+                    let action = picker.as_mut().unwrap().key(k);
+                    match action {
+                        Some(crate::profiles::Action::Close) => picker = None,
+                        Some(action) => {
+                            let (destination, create) = match action {
+                                crate::profiles::Action::Load(p) => (p, false),
+                                crate::profiles::Action::Create(p) => (p, true),
+                                crate::profiles::Action::Close => unreachable!(),
+                            };
+                            match change_profile(
+                                &mut s,
+                                &mut path,
+                                &mut saving,
+                                &destination,
+                                create,
+                            ) {
+                                Ok(()) => picker = None,
+                                Err(e) => picker.as_mut().unwrap().error = Some(e.to_string()),
+                            }
+                        }
+                        None => {}
+                    }
+                    next_frame = Instant::now();
+                    continue;
+                }
+            }
+            match input {
                 Event::Key(k) if k.kind != KeyEventKind::Release => match k.code {
                     KeyCode::Esc | KeyCode::Char('q') => break,
                     KeyCode::Char('c') if k.modifiers.contains(KeyModifiers::CONTROL) => break,
+                    KeyCode::Char('p') => {
+                        match crate::profiles::Picker::open(&path) {
+                            Ok(opened) => picker = Some(opened),
+                            Err(e) => {
+                                saving.status =
+                                    SaveStatus::Failed(format!("Cannot list profiles: {e}"))
+                            }
+                        }
+                        next_frame = Instant::now();
+                    }
                     KeyCode::Char('?') => {
                         s.panel = !s.panel;
                         saving.mark_changed();
@@ -623,6 +847,125 @@ mod tests {
     use super::*;
 
     #[test]
+    fn profile_switch_saves_pending_and_loads_or_copies_settings() {
+        let dir = tempfile::tempdir().unwrap();
+        let original = dir.path().join("default.toml");
+        let destination = dir.path().join("night.toml");
+        let mut settings = Settings {
+            colors: "rR".into(),
+            ..Settings::default()
+        };
+        let mut path = original.clone();
+        let mut saving = SaveState::default();
+        saving.mark_changed();
+        change_profile(&mut settings, &mut path, &mut saving, &destination, true).unwrap();
+        assert_eq!(persistence::load_required(&original).unwrap().colors, "rR");
+        assert_eq!(
+            persistence::load_required(&destination).unwrap().colors,
+            "rR"
+        );
+        assert_eq!(path, destination);
+        assert!(!saving.unsaved);
+        settings.colors = "bB".into();
+        saving.mark_changed();
+        change_profile(&mut settings, &mut path, &mut saving, &original, false).unwrap();
+        assert_eq!(settings.colors, "rR");
+        assert_eq!(
+            persistence::load_required(&destination).unwrap().colors,
+            "bB"
+        );
+    }
+    #[test]
+    fn failed_profile_changes_preserve_active_path_settings_and_pending_save() {
+        let dir = tempfile::tempdir().unwrap();
+        let original = dir.path().join("default.toml");
+        let invalid = dir.path().join("broken.toml");
+        std::fs::write(&invalid, "bad = [").unwrap();
+        let mut settings = Settings::default();
+        let mut path = original.clone();
+        let mut saving = SaveState::default();
+        saving.mark_changed();
+        for (destination, create) in [
+            (&invalid, false),
+            (&invalid, true),
+            (&dir.path().join("missing.toml"), false),
+        ] {
+            assert!(
+                change_profile(&mut settings, &mut path, &mut saving, destination, create).is_err()
+            );
+            assert_eq!(path, original);
+            assert_eq!(settings.colors, "gG");
+            assert!(saving.unsaved);
+        }
+        // Force the old profile save to fail without relying on permissions.
+        let blocked = dir.path().join("blocked");
+        std::fs::write(&blocked, "file").unwrap();
+        path = blocked.join("default.toml");
+        let destination = dir.path().join("valid.toml");
+        persistence::save(&destination, &Settings::default()).unwrap();
+        assert!(
+            change_profile(&mut settings, &mut path, &mut saving, &destination, false).is_err()
+        );
+        assert_eq!(path, blocked.join("default.toml"));
+        assert!(saving.unsaved);
+        let new = dir.path().join("new.toml");
+        assert!(change_profile(&mut settings, &mut path, &mut saving, &new, true).is_err());
+        assert!(!new.exists());
+    }
+    #[test]
+    fn performance_layout_uses_remaining_width_and_adds_plots() {
+        for (width, expected) in [
+            (24, 0),
+            (39, 0),
+            (40, 1),
+            (79, 1),
+            (80, 2),
+            (119, 2),
+            (120, 3),
+            (200, 3),
+        ] {
+            let area = Rect::new(72, 2, width, 10);
+            let plots = plot_regions(area);
+            assert_eq!(plots.len(), expected);
+            if let Some(last) = plots.last() {
+                assert_eq!(last.right(), area.right());
+                assert!(plots.iter().all(|r| r.width >= 40));
+                for pair in plots.windows(2) {
+                    assert_eq!(pair[0].right(), pair[1].x);
+                }
+            }
+        }
+        let mut scene = Scene::new(42);
+        scene.resize(10, 10);
+        let mut density = crate::metrics::DensityHistory::default();
+        density.sample(0., &scene);
+        let mut metrics = crate::metrics::PerformanceHistory::default();
+        metrics.frame(0.002);
+        metrics.sample(0.25, 12);
+        for width in [24, 40, 80, 120] {
+            let area = Rect::new(0, 0, width, 12);
+            let mut buffer = Buffer::empty(area);
+            performance(area, &mut buffer, &density, &metrics, 0.25, 6., 12);
+            let text: String = buffer.content.iter().map(|c| c.symbol()).collect();
+            assert!(text.contains("12 traces"));
+            if width >= 40 {
+                assert!(text.contains("4.0 FPS"));
+            }
+            assert_eq!(text.contains("Frame work 2.00 ms"), width >= 40);
+            assert_eq!(text.contains("Visible glyph density"), width >= 80);
+            assert_eq!(text.contains("Active traces 12"), width >= 120);
+            if width >= 120 {
+                assert!(
+                    text.find("Frame work").unwrap() < text.find("Visible glyph density").unwrap()
+                );
+                assert!(
+                    text.find("Visible glyph density").unwrap()
+                        < text.find("Active traces").unwrap()
+                );
+            }
+        }
+    }
+    #[test]
     fn chart_axis_labels_follow_compression_and_available_width() {
         let labels = |c, w| {
             chart_time_labels(c, w)
@@ -648,7 +991,7 @@ mod tests {
         let controls = Controls {
             settings: &settings,
             selected: 8,
-            traces: 0,
+
             paused: false,
             path: std::path::Path::new("default.toml"),
             status: &SaveStatus::Config,
@@ -862,7 +1205,7 @@ mod tests {
         let controls = Controls {
             settings: &s,
             selected: 10,
-            traces: 0,
+
             paused: false,
             path: std::path::Path::new("default.toml"),
             status: &SaveStatus::Config,
@@ -887,12 +1230,13 @@ mod tests {
         for width in [0, 80, 111, 112, 160, 240] {
             let area = Rect::new(2, 3, width, 12);
             let (controls, chart) = panel_regions(area);
-            if width < 112 {
-                assert_eq!(controls, area);
-                assert!(chart.is_none());
+            let chart = chart.unwrap();
+            if width < 96 {
+                assert_eq!(controls.width, area.width);
+                assert_eq!(chart.y, controls.bottom());
+                assert_eq!(chart.height, 2);
             } else {
-                let chart = chart.unwrap();
-                assert!(controls.width >= 72);
+                assert_eq!(controls.width, 72);
                 assert_eq!(chart.x, controls.right());
                 assert_eq!(chart.right(), area.right());
             }
@@ -917,6 +1261,58 @@ mod tests {
         edit(&mut s, 1, 1.);
         assert_eq!(s.min_speed, MIN_TRACE_SPEED);
         assert_eq!(s.max_speed, MAX_TRACE_SPEED);
+    }
+    #[test]
+    fn rendered_tails_use_explicit_rgb_without_dim_and_preserve_accents() {
+        let mut scene = Scene::new(42);
+        scene.resize(1, 100);
+        let settings = Settings {
+            density: 1.,
+            min_speed: 5.,
+            max_speed: 5.,
+            min_length: 8,
+            max_length: 8,
+            ..Settings::default()
+        };
+        for _ in 0..80 {
+            scene.advance(0.05, &settings);
+        }
+        let trace = scene
+            .traces
+            .iter()
+            .find(|t| t.glyphs.len() >= 6)
+            .unwrap()
+            .clone();
+        scene.traces = vec![trace];
+        scene.traces[0].glyphs.truncate(6);
+        let area = Rect::new(0, 0, 2, 100);
+        for code in "gGrRbBmMyYoOsScwk".chars() {
+            for glyph in &mut scene.traces[0].glyphs {
+                glyph.color = code;
+                glyph.symbol = 'X';
+                glyph.highlighted = false;
+            }
+            scene.traces[0].glyphs[4].highlighted = true;
+            let mut buffer = Buffer::empty(area);
+            Rain(&scene).render(area, &mut buffer);
+            let row = scene.traces[0].head_row() as u16;
+            let base = color(code);
+            let Color::Rgb(r, g, b) = base else {
+                panic!("palette must be RGB")
+            };
+            let expected = Color::Rgb(
+                (r as f64 * 0.6).round() as u8,
+                (g as f64 * 0.6).round() as u8,
+                (b as f64 * 0.6).round() as u8,
+            );
+            assert_eq!(buffer[(0, row - 5)].fg, expected, "tail color {code}");
+            assert!(!buffer[(0, row - 5)].modifier.contains(Modifier::DIM));
+            assert_eq!(buffer[(0, row - 1)].fg, base);
+            assert_eq!(buffer[(0, row)].fg, color('w'));
+            assert!(buffer[(0, row)].modifier.contains(Modifier::BOLD));
+            assert_eq!(buffer[(0, row - 4)].fg, brighten(base));
+            assert!(buffer[(0, row - 4)].modifier.contains(Modifier::BOLD));
+        }
     }
     #[test]
     fn green_shades_and_highlight_have_explicit_contrast() {
@@ -1015,7 +1411,7 @@ mod tests {
         let controls = Controls {
             settings: &s,
             selected: 0,
-            traces: 12,
+
             paused: true,
             path: std::path::Path::new("config/settings.toml"),
             status: &SaveStatus::Saved,
@@ -1023,10 +1419,11 @@ mod tests {
         };
         let lines = controls.lines(12);
         assert_eq!(lines[1].to_string(), "> Min speed: 2.00");
-        assert!(lines[0].to_string().ends_with("12 traces | Paused"));
+        assert!(lines[0].to_string().ends_with("quit | Paused"));
+        assert!(!lines[0].to_string().contains("traces"));
         assert_eq!(
             lines.last().unwrap().to_string(),
-            "Saved: config/settings.toml"
+            "Config Profile: settings · Saved"
         );
         let area = Rect::new(0, 0, 120, 12);
         let mut styled = Buffer::empty(area);
@@ -1047,6 +1444,31 @@ mod tests {
         assert!(styled[(2, 1)].modifier.contains(Modifier::BOLD));
     }
     #[test]
+    fn profile_label_uses_filename_stem_without_exposing_directory() {
+        let settings = Settings::default();
+        for (path, name) in [
+            ("profiles/default.toml", "default"),
+            ("/private/config/Christmas rain.toml", "Christmas rain"),
+            ("profiles/night.v2.toml", "night.v2"),
+            ("custom", "custom"),
+            ("profiles/雨.toml", "雨"),
+            ("", "default"),
+        ] {
+            let controls = Controls {
+                settings: &settings,
+                selected: 0,
+                paused: false,
+                path: std::path::Path::new(path),
+                status: &SaveStatus::Config,
+                pending: false,
+            };
+            assert_eq!(
+                controls.lines(12).last().unwrap().to_string(),
+                format!("Config Profile: {name}")
+            );
+        }
+    }
+    #[test]
     fn palette_toggle_and_save_status_have_text_and_color() {
         let s = Settings {
             colors: "mgb".into(),
@@ -1057,7 +1479,7 @@ mod tests {
         let mut controls = Controls {
             settings: &s,
             selected: 10,
-            traces: 0,
+
             paused: false,
             path: std::path::Path::new("settings.toml"),
             status: &failure,
@@ -1085,14 +1507,17 @@ mod tests {
         assert!(lines
             .iter()
             .any(|l| l.to_string() == "  Individual glyph colors: Off"));
-        assert_eq!(lines.last().unwrap().to_string(), "Save failed: disk full");
-        assert_eq!(lines.last().unwrap().spans[0].style.fg, Some(color('r')));
+        assert_eq!(
+            lines.last().unwrap().to_string(),
+            "Config Profile: settings · Save failed: disk full"
+        );
+        assert_eq!(lines.last().unwrap().spans[2].style.fg, Some(color('r')));
         controls.pending = true;
         let pending = controls.lines(12);
         assert_eq!(
             pending.last().unwrap().to_string(),
-            "Pending: settings.toml"
+            "Config Profile: settings · Pending"
         );
-        assert_eq!(pending.last().unwrap().spans[0].style.fg, Some(color('y')));
+        assert_eq!(pending.last().unwrap().spans[2].style.fg, Some(color('y')));
     }
 }

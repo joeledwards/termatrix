@@ -1,4 +1,4 @@
-# Release checks for 3.0.0
+# Release checks for 3.1.0
 
 ## Local checks
 
@@ -20,8 +20,8 @@ settings, build artifacts and workspace tooling out of the package.
 
 ## Visual checks
 
-Developer feedback accepted resize behavior, controls, the coverage chart and
-palette/highlight appearance. The agent has not run interactive terminal checks.
+Developer feedback accepted resize behavior, controls, the performance layout,
+explicit tail shading and profile-picker colors. The agent has not run interactive terminal checks.
 Before publishing, verify fresh defaults, saved preferences, pause/resume, all exit
 keys, and terminal restoration on your target platforms. The backend supports
 Linux/macOS/Windows; this is not a claim of platform-by-platform visual validation.
@@ -31,12 +31,12 @@ on macOS. Keep the repository URL in the README so the image displays on crates.
 after pushing. A screenshot records a particular configuration; panel details may
 change in later builds.
 
-See [coverage](coverage.md) for remaining test gaps. Named profiles, graphical
+See [coverage](coverage.md) for remaining test gaps. Profile rename/delete, graphical
 frontends and automatic reduced-color adaptation remain future work.
 
 ## Preparation evidence
 
-- 45 isolated unit tests pass.
+- 56 isolated unit tests pass.
 - Formatting, Clippy with warnings denied, and the build pass.
 - Package verification compiled against published term-colors 0.2.0, with no local path override.
 - Documentation links and the screenshot were checked locally. README image/document links
