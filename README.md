@@ -31,7 +31,7 @@ visually checked by the developer on their terminal. Run `termatrix --help` for 
 Adjust speed, density, clumping, trace length, alphabet, palettes, and highlights.
 Choose two-shade Green, Blue, Red, Purple, Yellow, Orange, or Grey; try Rainbow,
 Christmas, or a mixed palette. Enable **Individual glyph colors** to mix colors
-within each trace. The default is green Katakana with scattered highlights.
+within each trace. The default is green Katakana with scattered highlights and one color per trace.
 
 The controls resize with your terminal. At 112 columns or wider, a Braille chart
 shows visible glyph coverage over the last minute. Press `?` for a full canvas.

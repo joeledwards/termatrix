@@ -292,7 +292,7 @@ mod tests {
         scene.resize(20, 100);
         let mut settings = Settings::default();
         assert_eq!(settings.colors, "gG");
-        assert!(settings.per_glyph_colors);
+        assert!(!settings.per_glyph_colors);
         for _ in 0..200 {
             scene.advance(0.02, &settings);
         }

@@ -19,7 +19,7 @@ restores the terminal and exits.
 | Canvas-relative | On scales advancement with canvas height; Off uses glyph-relative speed |
 | Palette | Built-in colors or the custom sequence loaded from TOML |
 | Alphabet | Katakana, letters, numbers, symbols, and other character sets |
-| Individual glyph colors | On chooses colors per glyph; Off chooses per trace |
+| Individual glyph colors | Off (default) chooses colors per trace; On chooses per glyph |
 | Highlight probability | Chance a glyph receives a stable bright/bold accent; 0 disables accents |
 
 Heads remain white. Hidden traces continue moving and can reappear. Startup is

@@ -36,7 +36,7 @@ impl Default for Settings {
             max_length: 24,
             mutation_rate: 0.05,
             colors: "gG".into(),
-            per_glyph_colors: true,
+            per_glyph_colors: false,
             highlight_probability: 0.12,
             glyph_set: "special".into(),
             canvas_relative: false,
@@ -106,6 +106,16 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn individual_colors_default_off_and_preserve_saved_choice() {
+        assert!(!Settings::default().per_glyph_colors);
+        assert!(!toml::from_str::<Settings>("").unwrap().per_glyph_colors);
+        assert!(
+            toml::from_str::<Settings>("per_glyph_colors = true")
+                .unwrap()
+                .per_glyph_colors
+        );
+    }
     #[test]
     fn speed_hard_limits_are_internal_and_validated() {
         let mut s = Settings {

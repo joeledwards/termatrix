@@ -42,7 +42,7 @@ frontends and automatic reduced-color adaptation remain future work.
 
 ## Preparation evidence
 
-- 39 isolated unit tests pass; the ignored documentation renderer was run separately.
+- 40 isolated unit tests pass; the ignored documentation renderer was run separately.
 - Formatting, Clippy with warnings denied, and the build pass.
 - Package verification compiled against published term-colors 0.2.0, with no local path override.
 - Documentation links and SVG XML were checked locally. README image/document links
