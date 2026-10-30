@@ -84,8 +84,8 @@ impl Settings {
         {
             return Err("lengths must satisfy 1 <= min <= max <= 512; refresh rate 1..240".into());
         }
-        if self.colors.is_empty() || !self.colors.chars().all(|c| "bcgGkmrRwyos".contains(c)) {
-            return Err("colors must be a nonempty sequence of bcgGkmrRwyos".into());
+        if self.colors.is_empty() || !self.colors.chars().all(|c| "bcgGkmrRwyosS".contains(c)) {
+            return Err("colors must be a nonempty sequence of bcgGkmrRwyosS".into());
         }
         self.glyph_set.parse::<crate::alphabet::GlyphSet>()?;
         Ok(())

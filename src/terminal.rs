@@ -70,7 +70,7 @@ const PALETTES: [(&str, &str); 11] = [
     ("Orange-green-blue", "ogb"),
     ("Christmas", "rgw"),
     ("Blue", "bc"),
-    ("White-gray", "ws"),
+    ("Grey", "sS"),
     ("Red", "rR"),
     ("Purple", "m"),
     ("Yellow", "y"),
@@ -149,10 +149,14 @@ fn color(c: char) -> Color {
         'm' => Hue::Purple,
         's' => Hue::Grey,
         // Local additions outside the shared seven-hue palette.
-        'G' | 'R' => {
+        'G' | 'R' | 'S' => {
             let [r, g, b] = Palette::theme(Theme::Light)
                 .color(
-                    if c == 'G' { Hue::Green } else { Hue::Red },
+                    match c {
+                        'G' => Hue::Green,
+                        'R' => Hue::Red,
+                        _ => Hue::Grey,
+                    },
                     Depth::TrueColor,
                 )
                 .swatch()
@@ -300,7 +304,8 @@ impl Controls<'_> {
                             'r' => "Red",
                             'R' => "Dark red",
                             'w' => "White",
-                            's' => "Gray",
+                            's' => "Light grey",
+                            'S' => "Dark grey",
                             'y' => "Yellow",
                             'o' => "Orange",
                             _ => "?",
@@ -550,17 +555,19 @@ mod tests {
         assert_ne!(color('R'), color('r'));
     }
     #[test]
-    fn white_gray_profile_and_preview() {
+    fn grey_profile_and_preview() {
         let mut s = Settings {
             colors: "bc".into(),
             ..Settings::default()
         };
         edit(&mut s, 10, 1.);
-        assert_eq!(s.colors, "ws");
+        assert_eq!(s.colors, "sS");
+        assert_eq!(color('s'), Color::Rgb(170, 170, 170));
+        assert_eq!(color('S'), Color::Rgb(119, 119, 119));
         s.validate().unwrap();
-        assert_eq!(value(&s, 10), "White-gray");
-        assert_eq!(s.palette_color(0.25), 'w');
-        assert_eq!(s.palette_color(0.75), 's');
+        assert_eq!(value(&s, 10), "Grey");
+        assert_eq!(s.palette_color(0.25), 's');
+        assert_eq!(s.palette_color(0.75), 'S');
         let controls = Controls {
             settings: &s,
             selected: 10,
@@ -575,11 +582,14 @@ mod tests {
             .iter()
             .find(|l| l.to_string().starts_with("> Palette:"))
             .unwrap();
-        assert_eq!(palette.to_string(), "> Palette: White-gray · White · Gray");
+        assert_eq!(
+            palette.to_string(),
+            "> Palette: Grey · Light grey · Dark grey"
+        );
         assert!(palette
             .spans
             .iter()
-            .any(|s| s.content == "Gray" && s.style.fg == Some(color('s'))));
+            .any(|s| s.content == "Light grey" && s.style.fg == Some(color('s'))));
     }
     #[test]
     fn chart_layout_and_braille_rendering() {

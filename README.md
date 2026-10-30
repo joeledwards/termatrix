@@ -68,12 +68,12 @@ configuration directories are created on save. No file is created until an edit.
   glyphs are highlighted with bold and an explicitly brighter RGB shade.
   `highlight_probability` (0–1, default 0.12) adjusts this live; each glyph
   retains its random highlight percentile through mutation and palette changes. The
-  weighted palette uses `bcgGkmrRwyos` (`o` is orange). Repeated letters
+  weighted palette uses `bcgGkmrRwyosS` (`o` is orange). Repeated letters
   increase their weight. Color choices are stable per trace, or per glyph with
   `per_glyph_colors = true` (the Individual glyph colors control). Head highlighting
   remains white in both modes. The compact panel list includes Green, Blue, Red, Purple, Yellow, Orange, Rainbow,
   Purple-green-blue, Orange-green-blue, Christmas (red/green/white), and
-  White-gray. TOML accepts custom sequences. All named colors use explicit RGB. The shared `term-colors` dark palette
+  Grey. TOML accepts custom sequences. All named colors use explicit RGB. The shared `term-colors` dark palette
   provides red, orange, yellow, green, blue, purple and grey; local additions
   are cyan (51,187,204), white (238,238,238), and black (34,34,34).
 - Terminal lanes allocate two cells for a Unicode scalar of width one or two.
@@ -159,10 +159,11 @@ invalid or unreadable files produce an error rather than silently resetting.
 Explicit `--config` / `TERMATRIX_CONFIG` paths bypass this legacy fallback.
 Named-profile selection and management remain future work.
 
-The White-gray profile uses `colors = "ws"`: white plus shared gray. Individual
-glyph colors mixes shades within each trace; disabling it mixes shades across
-traces. White head highlights and brighter random accents remain. Custom `w`
-still means plain white; select White-gray to change an existing saved session.
+The Grey profile uses `colors = "sS"`: shared light grey (170,170,170) and dark
+grey (119,119,119). Individual glyph colors mixes shades within each trace;
+disabling it mixes shades across traces. White heads and random highlights remain.
+Existing custom sequences such as `w` or `ws` are preserved; select Grey to use
+the new profile in an existing session.
 
 Green mixes light/dark green (`gG`), Blue mixes blue/cyan (`bc`), and Red mixes
 shared dark-theme red (221,68,51) with light-theme red (170,17,0), encoded as `rR`.
