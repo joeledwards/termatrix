@@ -1,3 +1,6 @@
 /target
 **/*.rs.bk
 *.swp
+
+# Local live-settings session used during visual iteration.
+/preview.toml

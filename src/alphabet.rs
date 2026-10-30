@@ -52,7 +52,7 @@ impl FromStr for GlyphSet {
             "set" => Ok(GlyphSet::Set),
             "special" => Ok(GlyphSet::Special),
             "symbol" => Ok(GlyphSet::Symbol),
-            _ => Err(format!("Unknown glyph set '{}'", s))
+            _ => Err(format!("Unknown glyph set '{}'", s)),
         }
     }
 }

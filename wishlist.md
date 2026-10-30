@@ -1,15 +1,7 @@
-- add configuration option for density (0.1 - 0.9)
-- clear the screan after ctrl+c (seems like termion is supposed to handle this, possible we are not awaiting the completion of a thread)
-- permit overwrites (multiple traces at different rates in the same column)
-- add configuration option for overwrite behavior (deletes the trace it catches vs being followed by it)
-- handle terminal resizing (see termion's `terminal_size()` function)
-  - when window size decreasing, delete out-of-bounds traces
-  - when window size increasing, start sliding again / add new traces
-- add configuration option for trace "gravity" (tendency to cluster together rather than simple random placement)
-- option to --debug which will reserve a few lines at the top of the screen dedicated to debug info
-  - update delay
-  - updates / sec (frequency in Hz)
-  - glyphs / sec
-  - glyphs / update
-  - traces / update
-  - min/max glyph delay (actual, not the configured min/max)
+# After the first 3.0 milestone
+
+- Visual tuning of default speeds, density, clumping and glyph-relative versus canvas-relative advancement.
+- Configurable highlight/fade profiles and named presets.
+- Additional performance metrics alongside the visible glyph density chart.
+- Complete coverage gaps in docs/coverage.md before release.
+- Graphical/OpenGL frontend using the library scene and projection boundary.
