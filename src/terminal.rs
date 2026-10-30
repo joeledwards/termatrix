@@ -96,7 +96,7 @@ fn value(s: &Settings, i: usize) -> String {
         5 => s.min_length.to_string(),
         6 => s.max_length.to_string(),
         7 => format!("{:.2}", s.mutation_rate),
-        8 => s.max_refresh_rate.to_string(),
+        8 => format!("{} Hz", s.max_refresh_rate),
         9 => s.canvas_relative.to_string(),
         10 => PALETTES
             .iter()
@@ -578,6 +578,27 @@ mod tests {
     use super::*;
 
     #[test]
+    fn refresh_cap_displays_hertz() {
+        let settings = Settings::default();
+        assert_eq!(value(&settings, 8), "60 Hz");
+        let controls = Controls {
+            settings: &settings,
+            selected: 8,
+            traces: 0,
+            paused: false,
+            path: std::path::Path::new("default.toml"),
+            status: &SaveStatus::Config,
+            pending: false,
+        };
+        let lines = controls.lines(12);
+        let row = lines
+            .iter()
+            .find(|l| l.to_string().starts_with("> Refresh cap:"))
+            .unwrap();
+        assert_eq!(row.to_string(), "> Refresh cap: 60 Hz");
+        assert_eq!(row.spans.last().unwrap().style.fg, Some(color('y')));
+    }
+    #[test]
     fn unchanged_and_successful_saves_do_not_write_again_on_exit() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("default.toml");
@@ -1011,7 +1032,3 @@ mod tests {
         assert_eq!(pending.last().unwrap().spans[0].style.fg, Some(color('y')));
     }
 }
-
-#[cfg(test)]
-#[path = "preview.rs"]
-mod preview;

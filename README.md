@@ -3,9 +3,9 @@
 Matrix rain for your terminal, with live controls, layered traces, and colorful
 highlights. Tune the look while it runs—your preferences save automatically.
 
-![Green Matrix rain with live controls and a density chart](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix.svg)
+![Green Matrix rain with live controls and a density chart](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix-3.png)
 
-*Rendered from the app's actual terminal buffer; fonts and appearance vary by terminal.*
+*Captured in iTerm on macOS. Fonts and appearance vary by terminal.*
 
 ## Install and run
 

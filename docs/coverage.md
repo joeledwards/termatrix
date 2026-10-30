@@ -6,6 +6,7 @@
 | Fresh special alphabet defaults; saved choices preserved | `settings::tests::fresh_defaults_use_special_and_saved_choice_wins` |
 | Compiled speed limits, UI clamping, obsolete settings migration and save cleanup | `settings::tests::speed_hard_limits_are_internal_and_validated`, `terminal::tests::speed_controls_clamp_at_compiled_limits`, `persistence::tests::obsolete_limits_load_but_are_not_saved_or_enforced` |
 | Chart sampling cadence, bounded history, empty canvas and occlusion accounting | `metrics::tests::sampling_is_bounded_independent_and_handles_empty_canvas`, `overlapping_traces_count_only_once` |
+| Refresh cap displays Hz with rate styling | `terminal::tests::refresh_cap_displays_hertz` |
 | Responsive chart layout and Braille line output | `terminal::tests::chart_layout_and_braille_rendering` |
 | Settings serialization, invalid ranges, equal speed bounds | `settings::tests::config_round_trip_and_validation` |
 | Rate distribution endpoints, bias and ordering | `settings::tests::bias_preserves_bounds_and_order` |
@@ -29,7 +30,6 @@
 | Cleanup resets text/color attributes before cursor/screen restoration | `terminal::tests::terminal_cleanup_resets_style_before_leaving_screen` |
 | Rendered output handles one-byte partial writes, broken pipes, write-zero and flush failure | `terminal::tests::rendered_frame_handles_partial_writes_and_output_failures` |
 | Narrow foreground over wide background and subsequent reveal | `terminal::tests::narrow_foreground_occludes_wide_background_without_stale_cells` |
-| Documentation preview generated from real widgets | Ignored `terminal::preview::render_readme_preview`, run explicitly |
 | Rendering into Ratatui's isolated test backend | `terminal::tests::frame_contains_glyphs` |
 | Default profile directory, legacy fallback, precedence, invalid profile and explicit-path isolation | `persistence::tests::default_profile_location_and_legacy_fallback`, `explicit_missing_file_does_not_inherit_legacy` |
 | File save/load and invalid configuration | `persistence::tests::save_load_and_invalid_file` |

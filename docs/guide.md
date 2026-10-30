@@ -15,7 +15,7 @@ restores the terminal and exits.
 | Clumping | 0 spreads arrivals uniformly; 1 favors positions near existing traces |
 | Min / Max length | Length range in glyphs, applied to new traces |
 | Mutation rate | Average character changes per glyph per second; 0 freezes characters |
-| Refresh cap | Maximum display frequency (1–240 Hz), independent of animation speed |
+| Refresh cap | Maximum display updates per second (1–240 Hz), shown with units; independent of animation speed |
 | Canvas-relative | On scales advancement with canvas height; Off uses glyph-relative speed |
 | Palette | Built-in colors or the custom sequence loaded from TOML |
 | Alphabet | Katakana, letters, numbers, symbols, and other character sets |

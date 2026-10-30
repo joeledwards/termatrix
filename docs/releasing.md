@@ -26,28 +26,22 @@ Before publishing, verify fresh defaults, saved preferences, pause/resume, all e
 keys, and terminal restoration on your target platforms. The backend supports
 Linux/macOS/Windows; this is not a claim of platform-by-platform visual validation.
 
-The README SVG is a deterministic render of the real widgets, not a screenshot
-of a running terminal. Regenerate it with this isolated, ignored unit-test helper:
-
-```sh
-cargo test --bin termatrix render_readme_preview -- --ignored
-```
-
-It uses the default settings and seed 42 after 40 simulated seconds. No terminal
-session or service is started. Font rendering in SVG viewers can differ from a
-terminal's appearance. A real terminal screenshot may replace it later.
+The README uses `docs/images/termatrix-3.png`, captured by the developer in iTerm
+on macOS. Keep the repository URL in the README so the image displays on crates.io
+after pushing. A screenshot records a particular configuration; panel details may
+change in later builds.
 
 See [coverage](coverage.md) for remaining test gaps. Named profiles, graphical
 frontends and automatic reduced-color adaptation remain future work.
 
 ## Preparation evidence
 
-- 40 isolated unit tests pass; the ignored documentation renderer was run separately.
+- 41 isolated unit tests pass.
 - Formatting, Clippy with warnings denied, and the build pass.
 - Package verification compiled against published term-colors 0.2.0, with no local path override.
-- Documentation links and SVG XML were checked locally. README image/document links
+- Documentation links and the screenshot were checked locally. README image/document links
   use repository URLs so they remain usable on crates.io after the commit is pushed.
-- The package includes README, license, changelog, user/design/release guides and SVG.
+- The package includes README, license, changelog, user/design/release guides and the PNG screenshot.
 - Registry-connected publish dry run and publication remain maintainer actions.
 
 ## Maintainer publication
