@@ -63,15 +63,18 @@ const ALPHABETS: [&str; 14] = [
     "special",
     "symbol",
 ];
-const PALETTES: [(&str, &str); 8] = [
-    ("Light/dark green", "gG"),
-    ("Green", "g"),
+const PALETTES: [(&str, &str); 11] = [
+    ("Green", "gG"),
     ("Rainbow", "roygcbm"),
     ("Purple-green-blue", "mgb"),
     ("Orange-green-blue", "ogb"),
     ("Christmas", "rgw"),
-    ("Blue-cyan", "bc"),
+    ("Blue", "bc"),
     ("White-gray", "ws"),
+    ("Red", "rR"),
+    ("Purple", "m"),
+    ("Yellow", "y"),
+    ("Orange", "o"),
 ];
 fn value(s: &Settings, i: usize) -> String {
     match i {
@@ -146,9 +149,12 @@ fn color(c: char) -> Color {
         'm' => Hue::Purple,
         's' => Hue::Grey,
         // Local additions outside the shared seven-hue palette.
-        'G' => {
+        'G' | 'R' => {
             let [r, g, b] = Palette::theme(Theme::Light)
-                .color(Hue::Green, Depth::TrueColor)
+                .color(
+                    if c == 'G' { Hue::Green } else { Hue::Red },
+                    Depth::TrueColor,
+                )
                 .swatch()
                 .rgb;
             return Color::Rgb(r, g, b);
@@ -292,6 +298,7 @@ impl Controls<'_> {
                             'k' => "Black",
                             'm' => "Purple",
                             'r' => "Red",
+                            'R' => "Dark red",
                             'w' => "White",
                             's' => "Gray",
                             'y' => "Yellow",
@@ -519,6 +526,29 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn named_color_profiles_are_selectable_and_valid() {
+        for (name, colors) in [
+            ("Green", "gG"),
+            ("Blue", "bc"),
+            ("Red", "rR"),
+            ("Purple", "m"),
+            ("Yellow", "y"),
+            ("Orange", "o"),
+        ] {
+            let mut s = Settings {
+                colors: colors.into(),
+                ..Settings::default()
+            };
+            s.validate().unwrap();
+            assert_eq!(value(&s, 10), name);
+            edit(&mut s, 10, 1.);
+            edit(&mut s, 10, -1.);
+            assert_eq!(s.colors, colors);
+        }
+        assert_eq!(color('R'), Color::Rgb(170, 17, 0));
+        assert_ne!(color('R'), color('r'));
+    }
     #[test]
     fn white_gray_profile_and_preview() {
         let mut s = Settings {

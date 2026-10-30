@@ -68,11 +68,11 @@ configuration directories are created on save. No file is created until an edit.
   glyphs are highlighted with bold and an explicitly brighter RGB shade.
   `highlight_probability` (0–1, default 0.12) adjusts this live; each glyph
   retains its random highlight percentile through mutation and palette changes. The
-  weighted palette uses `bcgGkmrwyos` (`o` is orange). Repeated letters
+  weighted palette uses `bcgGkmrRwyos` (`o` is orange). Repeated letters
   increase their weight. Color choices are stable per trace, or per glyph with
   `per_glyph_colors = true` (the Individual glyph colors control). Head highlighting
-  remains white in both modes. The compact panel list includes Light/dark green, Green, Rainbow,
-  Purple-green-blue, Orange-green-blue, Christmas (red/green/white), Blue-cyan and
+  remains white in both modes. The compact panel list includes Green, Blue, Red, Purple, Yellow, Orange, Rainbow,
+  Purple-green-blue, Orange-green-blue, Christmas (red/green/white), and
   White-gray. TOML accepts custom sequences. All named colors use explicit RGB. The shared `term-colors` dark palette
   provides red, orange, yellow, green, blue, purple and grey; local additions
   are cyan (51,187,204), white (238,238,238), and black (34,34,34).
@@ -129,7 +129,7 @@ panel has explicit dark background and foreground colors.
 Fresh settings default to `colors = "gG"` with individual glyph colors enabled:
 light green is shared dark-theme green (102,187,51), and dark green is shared
 light-theme green (51,136,0). Saved palettes and color-mode choices are preserved.
-Select Light/dark green and enable Individual glyph colors in an existing session
+Select Green and enable Individual glyph colors in an existing session
 to get the same mixed-shade effect. Highlight probability is adjustable in the
 panel and persisted; zero disables random highlights while retaining white heads.
 
@@ -163,3 +163,8 @@ The White-gray profile uses `colors = "ws"`: white plus shared gray. Individual
 glyph colors mixes shades within each trace; disabling it mixes shades across
 traces. White head highlights and brighter random accents remain. Custom `w`
 still means plain white; select White-gray to change an existing saved session.
+
+Green mixes light/dark green (`gG`), Blue mixes blue/cyan (`bc`), and Red mixes
+shared dark-theme red (221,68,51) with light-theme red (170,17,0), encoded as `rR`.
+Purple (`m`), Yellow (`y`) and Orange (`o`) are single-hue profiles. Existing
+custom sequences remain valid, including plain `g`.
