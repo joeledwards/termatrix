@@ -68,7 +68,7 @@ configuration directories are created on save. No file is created until an edit.
   glyphs are highlighted with bold and an explicitly brighter RGB shade.
   `highlight_probability` (0–1, default 0.12) adjusts this live; each glyph
   retains its random highlight percentile through mutation and palette changes. The
-  weighted palette uses `bcgGkmrRwyosS` (`o` is orange). Repeated letters
+  weighted palette uses `bcgGkmMrRwyYoOsS` (`o` is orange). Repeated letters
   increase their weight. Color choices are stable per trace, or per glyph with
   `per_glyph_colors = true` (the Individual glyph colors control). Head highlighting
   remains white in both modes. The compact panel list includes Green, Blue, Red, Purple, Yellow, Orange, Rainbow,
@@ -167,5 +167,11 @@ the new profile in an existing session.
 
 Green mixes light/dark green (`gG`), Blue mixes blue/cyan (`bc`), and Red mixes
 shared dark-theme red (221,68,51) with light-theme red (170,17,0), encoded as `rR`.
-Purple (`m`), Yellow (`y`) and Orange (`o`) are single-hue profiles. Existing
+Purple (`mM`), Yellow (`yY`) and Orange (`oO`) also pair the shared palette’s
+dark-theme and light-theme shades. Existing
 custom sequences remain valid, including plain `g`.
+
+All individual-color profiles contain two shades. The dark Purple, Yellow and
+Orange variants use RGB (102,34,204), (204,153,0) and (187,85,0), respectively.
+Single-letter custom palettes remain supported. Select a two-shade profile in
+existing sessions to replace a saved single-letter palette.

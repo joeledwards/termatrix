@@ -72,9 +72,9 @@ const PALETTES: [(&str, &str); 11] = [
     ("Blue", "bc"),
     ("Grey", "sS"),
     ("Red", "rR"),
-    ("Purple", "m"),
-    ("Yellow", "y"),
-    ("Orange", "o"),
+    ("Purple", "mM"),
+    ("Yellow", "yY"),
+    ("Orange", "oO"),
 ];
 fn value(s: &Settings, i: usize) -> String {
     match i {
@@ -149,12 +149,15 @@ fn color(c: char) -> Color {
         'm' => Hue::Purple,
         's' => Hue::Grey,
         // Local additions outside the shared seven-hue palette.
-        'G' | 'R' | 'S' => {
+        'G' | 'R' | 'S' | 'M' | 'Y' | 'O' => {
             let [r, g, b] = Palette::theme(Theme::Light)
                 .color(
                     match c {
                         'G' => Hue::Green,
                         'R' => Hue::Red,
+                        'M' => Hue::Purple,
+                        'Y' => Hue::Yellow,
+                        'O' => Hue::Orange,
                         _ => Hue::Grey,
                     },
                     Depth::TrueColor,
@@ -301,13 +304,16 @@ impl Controls<'_> {
                             'G' => "Dark green",
                             'k' => "Black",
                             'm' => "Purple",
+                            'M' => "Dark purple",
                             'r' => "Red",
                             'R' => "Dark red",
                             'w' => "White",
                             's' => "Light grey",
                             'S' => "Dark grey",
                             'y' => "Yellow",
+                            'Y' => "Dark yellow",
                             'o' => "Orange",
+                            'O' => "Dark orange",
                             _ => "?",
                         };
                         spans.push(Span::styled(name, Style::default().fg(color(c))));
@@ -532,14 +538,33 @@ mod tests {
     use super::*;
 
     #[test]
+    fn individual_profiles_have_two_distinct_shades() {
+        for (name, codes, dark_rgb) in [
+            ("Purple", "mM", (102, 34, 204)),
+            ("Yellow", "yY", (204, 153, 0)),
+            ("Orange", "oO", (187, 85, 0)),
+        ] {
+            let s = Settings {
+                colors: codes.into(),
+                ..Settings::default()
+            };
+            s.validate().unwrap();
+            assert_eq!(value(&s, 10), name);
+            let light = s.palette_color(0.25);
+            let dark = s.palette_color(0.75);
+            assert_ne!(color(light), color(dark));
+            assert_eq!(color(dark), Color::Rgb(dark_rgb.0, dark_rgb.1, dark_rgb.2));
+        }
+    }
+    #[test]
     fn named_color_profiles_are_selectable_and_valid() {
         for (name, colors) in [
             ("Green", "gG"),
             ("Blue", "bc"),
             ("Red", "rR"),
-            ("Purple", "m"),
-            ("Yellow", "y"),
-            ("Orange", "o"),
+            ("Purple", "mM"),
+            ("Yellow", "yY"),
+            ("Orange", "oO"),
         ] {
             let mut s = Settings {
                 colors: colors.into(),
