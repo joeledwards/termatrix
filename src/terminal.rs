@@ -71,7 +71,7 @@ const PALETTES: [(&str, &str); 8] = [
     ("Orange-green-blue", "ogb"),
     ("Christmas", "rgw"),
     ("Blue-cyan", "bc"),
-    ("White", "w"),
+    ("White-gray", "ws"),
 ];
 fn value(s: &Settings, i: usize) -> String {
     match i {
@@ -293,6 +293,7 @@ impl Controls<'_> {
                             'm' => "Purple",
                             'r' => "Red",
                             'w' => "White",
+                            's' => "Gray",
                             'y' => "Yellow",
                             'o' => "Orange",
                             _ => "?",
@@ -518,6 +519,38 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn white_gray_profile_and_preview() {
+        let mut s = Settings {
+            colors: "bc".into(),
+            ..Settings::default()
+        };
+        edit(&mut s, 10, 1.);
+        assert_eq!(s.colors, "ws");
+        s.validate().unwrap();
+        assert_eq!(value(&s, 10), "White-gray");
+        assert_eq!(s.palette_color(0.25), 'w');
+        assert_eq!(s.palette_color(0.75), 's');
+        let controls = Controls {
+            settings: &s,
+            selected: 10,
+            traces: 0,
+            paused: false,
+            path: std::path::Path::new("default.toml"),
+            status: &SaveStatus::Config,
+            pending: false,
+        };
+        let lines = controls.lines(12);
+        let palette = lines
+            .iter()
+            .find(|l| l.to_string().starts_with("> Palette:"))
+            .unwrap();
+        assert_eq!(palette.to_string(), "> Palette: White-gray · White · Gray");
+        assert!(palette
+            .spans
+            .iter()
+            .any(|s| s.content == "Gray" && s.style.fg == Some(color('s'))));
+    }
     #[test]
     fn chart_layout_and_braille_rendering() {
         for width in [0, 80, 111, 112, 160, 240] {

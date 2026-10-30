@@ -17,6 +17,7 @@
 | Live controls stay within validated limits | `terminal::tests::controls_validate` |
 | 12-row panel, tiny layouts, hidden panel, scrolling selection | `terminal::tests::tiny_layout`, `panel_shows_eight_settings_and_keeps_selection_visible` |
 | Green default, live stable highlighting, probability endpoints and projected accents | `model::tests::highlight_probability_is_live_stable_and_projected`, `terminal::tests::green_shades_and_highlight_have_explicit_contrast` |
+| White-gray profile selection, validation and styled preview | `terminal::tests::white_gray_profile_and_preview` |
 | Complete shared palette and explicit local RGB additions | `terminal::tests::complete_palette_uses_explicit_rgb` |
 | Shared dark-theme yellow, distinct from orange | `terminal::tests::yellow_uses_shared_dark_palette` |
 | Shared dark-theme orange, distinct from yellow | `terminal::tests::orange_uses_shared_dark_palette` |
