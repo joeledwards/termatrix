@@ -3,6 +3,7 @@ use crossterm::{
     cursor::Show,
     event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
     execute,
+    style::{Attribute, ResetColor, SetAttribute},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{
@@ -24,11 +25,20 @@ use termatrix::{
     settings::{Settings, MAX_TRACE_SPEED, MIN_TRACE_SPEED},
 };
 use unicode_width::UnicodeWidthChar;
+fn restore_output(writer: &mut impl io::Write) -> io::Result<()> {
+    execute!(
+        writer,
+        ResetColor,
+        SetAttribute(Attribute::Reset),
+        Show,
+        LeaveAlternateScreen
+    )
+}
 struct Restore;
 impl Drop for Restore {
     fn drop(&mut self) {
         let _ = disable_raw_mode();
-        let _ = execute!(stdout(), Show, LeaveAlternateScreen);
+        let _ = restore_output(&mut stdout());
     }
 }
 const FIELDS: [&str; 14] = [
@@ -236,6 +246,39 @@ enum SaveStatus {
     Saved,
     Failed(String),
 }
+#[derive(Default)]
+struct SaveState {
+    unsaved: bool,
+    changed: Option<Instant>,
+    status: SaveStatus,
+}
+impl SaveState {
+    fn mark_changed(&mut self) {
+        self.unsaved = true;
+        self.changed = Some(Instant::now());
+    }
+    fn attempt(&mut self, path: &std::path::Path, settings: &Settings) {
+        self.status = match persistence::save(path, settings) {
+            Ok(()) => {
+                self.unsaved = false;
+                SaveStatus::Saved
+            }
+            Err(error) => SaveStatus::Failed(error.to_string()),
+        };
+        self.changed = None;
+    }
+    fn finish(&self, path: &std::path::Path, settings: &Settings) -> io::Result<()> {
+        if self.unsaved {
+            persistence::save(path, settings).map_err(|error| {
+                io::Error::other(format!(
+                    "cannot save preferences to {}: {error}",
+                    path.display()
+                ))
+            })?;
+        }
+        Ok(())
+    }
+}
 struct Controls<'a> {
     settings: &'a Settings,
     selected: usize,
@@ -431,7 +474,7 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         let _ = disable_raw_mode();
-        let _ = execute!(stdout(), Show, LeaveAlternateScreen);
+        let _ = restore_output(&mut stdout());
         previous(info);
     }));
     enable_raw_mode()?;
@@ -444,8 +487,7 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
     let mut paused = false;
     let mut last = Instant::now();
     let mut next_frame = last;
-    let mut dirty: Option<Instant> = None;
-    let mut status = SaveStatus::Config;
+    let mut saving = SaveState::default();
     let started = Instant::now();
     let mut density = crate::metrics::DensityHistory::default();
     loop {
@@ -458,12 +500,11 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
         }
         last = now;
         density.sample(now.duration_since(started).as_secs_f64(), &scene);
-        if dirty.is_some_and(|t| now.duration_since(t) >= Duration::from_millis(400)) {
-            status = match persistence::save(&path, &s) {
-                Ok(()) => SaveStatus::Saved,
-                Err(e) => SaveStatus::Failed(e.to_string()),
-            };
-            dirty = None;
+        if saving
+            .changed
+            .is_some_and(|t| now.duration_since(t) >= Duration::from_millis(400))
+        {
+            saving.attempt(&path, &s);
         }
         if now >= next_frame {
             scene.refresh_colors(&s);
@@ -484,8 +525,8 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
                             traces: scene.traces.len(),
                             paused,
                             path: &path,
-                            status: &status,
-                            pending: dirty.is_some(),
+                            status: &saving.status,
+                            pending: saving.changed.is_some(),
                         },
                         controls,
                     );
@@ -504,7 +545,7 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
                     KeyCode::Char('c') if k.modifiers.contains(KeyModifiers::CONTROL) => break,
                     KeyCode::Char('?') => {
                         s.panel = !s.panel;
-                        dirty = Some(Instant::now());
+                        saving.mark_changed();
                         next_frame = Instant::now();
                     }
                     KeyCode::Char(' ') => paused = !paused,
@@ -518,7 +559,7 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
                             selected,
                             if k.code == KeyCode::Right { 1. } else { -1. },
                         );
-                        dirty = Some(Instant::now());
+                        saving.mark_changed();
                     }
                     _ => {}
                 },
@@ -530,15 +571,51 @@ pub fn run(mut s: Settings, path: PathBuf, seed: u64) -> io::Result<()> {
             }
         }
     }
-    if dirty.is_some() {
-        persistence::save(&path, &s)?;
-    }
-    Ok(())
+    saving.finish(&path, &s)
 }
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[test]
+    fn unchanged_and_successful_saves_do_not_write_again_on_exit() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("default.toml");
+        let settings = Settings::default();
+        let mut state = SaveState::default();
+        state.finish(&path, &settings).unwrap();
+        assert!(!path.exists());
+        state.mark_changed();
+        state.attempt(&path, &settings);
+        assert!(matches!(state.status, SaveStatus::Saved));
+        std::fs::remove_file(&path).unwrap();
+        state.finish(&path, &settings).unwrap();
+        assert!(!path.exists());
+    }
+    #[test]
+    fn failed_autosave_is_retried_on_exit() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("default.toml");
+        std::fs::create_dir(&path).unwrap();
+        let settings = Settings::default();
+        let mut state = SaveState::default();
+        state.mark_changed();
+        state.attempt(&path, &settings);
+        assert!(matches!(state.status, SaveStatus::Failed(_)));
+        assert!(state.finish(&path, &settings).is_err());
+        std::fs::remove_dir(&path).unwrap();
+        state.finish(&path, &settings).unwrap();
+        assert!(path.is_file());
+    }
+    #[test]
+    fn terminal_cleanup_resets_style_before_leaving_screen() {
+        let mut bytes = Vec::new();
+        restore_output(&mut bytes).unwrap();
+        let text = String::from_utf8(bytes).unwrap();
+        assert!(text.contains("\x1b[0m"));
+        assert!(text.find("\x1b[0m").unwrap() < text.find("\x1b[?1049l").unwrap());
+        assert!(text.contains("\x1b[?25h"));
+    }
     #[test]
     fn rendered_frame_handles_partial_writes_and_output_failures() {
         use ratatui::backend::Backend;

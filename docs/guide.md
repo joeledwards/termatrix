@@ -38,7 +38,9 @@ Default locations use the platform configuration directory:
 
 `--config <path>` or `TERMATRIX_CONFIG` overrides the location. Changes save after
 400 ms without further edits, with pending changes saved on exit. Save failures
-appear in the panel. Saving replaces the file atomically and creates parent
+appear in the panel. Failed saves remain unsaved and are retried on exit;
+if the retry fails, the app exits with an error after restoring terminal state.
+Saving replaces the file atomically and creates parent
 directories. TOML comments are not preserved. Do not edit the file externally
 while the app is running; external changes are not watched.
 

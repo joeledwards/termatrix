@@ -24,6 +24,8 @@
 | Shared dark-theme yellow, distinct from orange | `terminal::tests::yellow_uses_shared_dark_palette` |
 | Shared dark-theme orange, distinct from yellow | `terminal::tests::orange_uses_shared_dark_palette` |
 | Panel semantic styles, plain-text equivalence, selection, palettes, toggles and save status | `terminal::tests::control_styles_preserve_plain_text_and_selection`, `palette_toggle_and_save_status_have_text_and_color` |
+| Failed autosaves retry on exit; successful or unchanged settings do not write again | `terminal::tests::failed_autosave_is_retried_on_exit`, `unchanged_and_successful_saves_do_not_write_again_on_exit` |
+| Cleanup resets text/color attributes before cursor/screen restoration | `terminal::tests::terminal_cleanup_resets_style_before_leaving_screen` |
 | Rendered output handles one-byte partial writes, broken pipes, write-zero and flush failure | `terminal::tests::rendered_frame_handles_partial_writes_and_output_failures` |
 | Narrow foreground over wide background and subsequent reveal | `terminal::tests::narrow_foreground_occludes_wide_background_without_stale_cells` |
 | Documentation preview generated from real widgets | Ignored `terminal::preview::render_readme_preview`, run explicitly |

@@ -10,6 +10,7 @@ A complete rewrite with a frontend-independent animation model.
 - Explicit RGB palettes, two-shade color profiles and per-glyph highlights.
 - Retained alphabet selection, weighted custom colors and startup overrides.
 - Separate simulation timing and display refresh rate.
+- Retry failed preference saves on exit and reset terminal styling during cleanup.
 
 ### Migration
 
