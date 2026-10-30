@@ -9,6 +9,7 @@ categories = ["command-line-utilities"]
 repository = "https://github.com/joeledwards/termatrix/"
 readme = "README.md"
 license = "ISC"
+include = ["src/**", "docs/**", "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "README.md", "LICENSE", "CHANGELOG.md"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

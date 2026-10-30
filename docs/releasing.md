@@ -1,0 +1,63 @@
+# Release checks for 3.0.0
+
+## Local checks
+
+```sh
+cargo test --locked --lib --bins
+cargo fmt --check
+cargo clippy --locked --lib --bins -- -D warnings
+cargo build --locked
+cargo package --locked --list
+cargo package --locked
+```
+
+Workspace commands can use `../../scripts/with-rust`. term-colors 0.2.0 is
+published. The local path supports workspace development; package verification
+must compile against the registry version and its `Style::swatch()` API.
+
+Review package contents, license, changelog and README links. Keep local preview
+settings, build artifacts and workspace tooling out of the package.
+
+## Visual checks
+
+Developer feedback accepted resize behavior, controls, the coverage chart and
+palette/highlight appearance. The agent has not run interactive terminal checks.
+Before publishing, verify fresh defaults, saved preferences, pause/resume, all exit
+keys, and terminal restoration on your target platforms. The backend supports
+Linux/macOS/Windows; this is not a claim of platform-by-platform visual validation.
+
+The README SVG is a deterministic render of the real widgets, not a screenshot
+of a running terminal. Regenerate it with this isolated, ignored unit-test helper:
+
+```sh
+cargo test --bin termatrix render_readme_preview -- --ignored
+```
+
+It uses the default settings and seed 42 after 40 simulated seconds. No terminal
+session or service is started. Font rendering in SVG viewers can differ from a
+terminal's appearance. A real terminal screenshot may replace it later.
+
+See [coverage](coverage.md) for remaining test gaps. Named profiles, graphical
+frontends and automatic reduced-color adaptation remain future work.
+
+## Preparation evidence
+
+- 36 isolated unit tests pass; the ignored documentation renderer was run separately.
+- Formatting, Clippy with warnings denied, and the build pass.
+- Package verification compiled against published term-colors 0.2.0, not the local path.
+- Documentation links and SVG XML were checked locally. README image/document links
+  use repository URLs so they remain usable on crates.io after the commit is pushed.
+- The package includes README, license, changelog, user/design/release guides and SVG.
+- Registry-connected publish dry run and publication remain maintainer actions.
+
+## Maintainer publication
+
+Push reviewed commits, then use your private credential context:
+
+```sh
+cargo publish --locked --dry-run
+cargo publish --locked
+```
+
+The agent does not push or publish. Keep publishing credentials out of the
+workspace-local Cargo home. Create/push release tags according to your policy.

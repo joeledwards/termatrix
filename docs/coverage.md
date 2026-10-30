@@ -24,15 +24,16 @@
 | Shared dark-theme yellow, distinct from orange | `terminal::tests::yellow_uses_shared_dark_palette` |
 | Shared dark-theme orange, distinct from yellow | `terminal::tests::orange_uses_shared_dark_palette` |
 | Panel semantic styles, plain-text equivalence, selection, palettes, toggles and save status | `terminal::tests::control_styles_preserve_plain_text_and_selection`, `palette_toggle_and_save_status_have_text_and_color` |
+| Rendered output handles one-byte partial writes, broken pipes, write-zero and flush failure | `terminal::tests::rendered_frame_handles_partial_writes_and_output_failures` |
+| Narrow foreground over wide background and subsequent reveal | `terminal::tests::narrow_foreground_occludes_wide_background_without_stale_cells` |
+| Documentation preview generated from real widgets | Ignored `terminal::preview::render_readme_preview`, run explicitly |
 | Rendering into Ratatui's isolated test backend | `terminal::tests::frame_contains_glyphs` |
 | Default profile directory, legacy fallback, precedence, invalid profile and explicit-path isolation | `persistence::tests::default_profile_location_and_legacy_fallback`, `explicit_missing_file_does_not_inherit_legacy` |
 | File save/load and invalid configuration | `persistence::tests::save_load_and_invalid_file` |
 | Failed replacement cleans temporary files; invalid saves preserve destination | `persistence::tests::failed_replace_cleans_temporary_and_preserves_destination`, `invalid_save_preserves_existing_settings` |
 
-Gaps: exact styled/plain frame fixtures, wide/narrow overlap fixtures, randomized
-chunk partitions, injected partial-write/broken-pipe errors,
-terminal restoration under real terminal
-errors. These remain work before release. Presets, file
+Gaps: additional exact frame fixtures, randomized simulation time partitions,
+and terminal restoration under real terminal errors. These remain work before release. Presets, file
 watching and additional appearance profiles are deferred.
 
 Manual checks proposed (not run by the agent): start in a terminal, toggle `?`,
@@ -43,3 +44,6 @@ Milestone validation: 29 isolated unit tests pass; formatting, Clippy and build
 pass. Developer visual feedback accepted the green/highlight combination, live
 controls, Braille chart and resize behavior. The agent did not run interactive
 terminal checks. Remaining gaps above are release follow-up work.
+
+Release preparation also verifies the packaged source against registry term-colors
+0.2.0; see [release checks](releasing.md).

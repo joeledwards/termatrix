@@ -9,12 +9,16 @@ use std::{
 #[derive(Parser)]
 #[command(version, about = "Matrix rain (? toggles live controls)")]
 struct Args {
+    /// Preferences file (default: platform config directory / termatrix/profiles/default.toml).
     #[arg(long, env = "TERMATRIX_CONFIG")]
     config: Option<PathBuf>,
+    /// Weighted color codes, e.g. gG (green) or roygcbm (rainbow).
     #[arg(short = 'c', long, env = "TERMATRIX_COLORS")]
     colors: Option<String>,
+    /// Alphabet, e.g. special (Katakana), binary, alpha, or hex.
     #[arg(short = 'g', long, env = "TERMATRIX_GLYPH_SET")]
     glyph_set: Option<String>,
+    /// Maximum display refresh rate in Hz (1–240); independent of trace speed.
     #[arg(
         short = 'f',
         long,
@@ -22,6 +26,7 @@ struct Args {
         env = "TERMATRIX_MAX_REFRESH_RATE"
     )]
     max_refresh_rate: Option<u16>,
+    /// Random seed for reproducible animation with identical simulation inputs.
     #[arg(long, default_value_t = 42)]
     seed: u64,
 }

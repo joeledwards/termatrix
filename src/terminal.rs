@@ -540,6 +540,107 @@ mod tests {
     use super::*;
 
     #[test]
+    fn rendered_frame_handles_partial_writes_and_output_failures() {
+        use ratatui::backend::Backend;
+        use std::io::Write;
+        struct Writer {
+            bytes: Vec<u8>,
+            limit: usize,
+            failure: Option<io::ErrorKind>,
+            fail_flush: bool,
+        }
+        impl Write for Writer {
+            fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+                if let Some(kind) = self.failure {
+                    return Err(io::Error::from(kind));
+                }
+                let n = bytes.len().min(self.limit);
+                self.bytes.extend_from_slice(&bytes[..n]);
+                Ok(n)
+            }
+            fn flush(&mut self) -> io::Result<()> {
+                if self.fail_flush {
+                    Err(io::Error::other("flush failed"))
+                } else {
+                    Ok(())
+                }
+            }
+        }
+        let mut scene = Scene::new(42);
+        scene.resize(4, 10);
+        for _ in 0..200 {
+            scene.advance(0.01, &Settings::default());
+        }
+        let area = Rect::new(0, 0, 8, 10);
+        let mut frame = Buffer::empty(area);
+        Rain(&scene).render(area, &mut frame);
+        let cells = || {
+            frame
+                .content
+                .iter()
+                .enumerate()
+                .map(|(i, c)| ((i % 8) as u16, (i / 8) as u16, c))
+        };
+        let mut full = Vec::new();
+        CrosstermBackend::new(&mut full).draw(cells()).unwrap();
+        let mut writer = Writer {
+            bytes: vec![],
+            limit: 1,
+            failure: None,
+            fail_flush: false,
+        };
+        CrosstermBackend::new(&mut writer).draw(cells()).unwrap();
+        assert_eq!(writer.bytes, full);
+        for kind in [io::ErrorKind::BrokenPipe, io::ErrorKind::Other] {
+            writer.failure = Some(kind);
+            assert_eq!(
+                CrosstermBackend::new(&mut writer)
+                    .draw(cells())
+                    .unwrap_err()
+                    .kind(),
+                kind
+            );
+        }
+        writer.failure = None;
+        writer.limit = 0;
+        assert_eq!(
+            CrosstermBackend::new(&mut writer)
+                .draw(cells())
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::WriteZero
+        );
+        writer.fail_flush = true;
+        assert!(Backend::flush(&mut CrosstermBackend::new(&mut writer)).is_err());
+    }
+    #[test]
+    fn narrow_foreground_occludes_wide_background_without_stale_cells() {
+        let mut scene = Scene::new(42);
+        scene.resize(1, 30);
+        for _ in 0..200 {
+            scene.advance(0.01, &Settings::default());
+        }
+        let mut back = scene.traces[0].clone();
+        back.depth = 0.9;
+        back.id = 1;
+        back.glyphs[0].symbol = '界';
+        let row = back.head_row() as u16;
+        let mut front = back.clone();
+        front.depth = 0.1;
+        front.id = 2;
+        front.glyphs.truncate(1);
+        front.glyphs[0].symbol = 'A';
+        scene.traces = vec![back.clone(), front];
+        let area = Rect::new(0, 0, 2, 30);
+        let mut buffer = Buffer::empty(area);
+        Rain(&scene).render(area, &mut buffer);
+        assert_eq!(buffer[(0, row)].symbol(), "A");
+        assert_eq!(buffer[(1, row)].symbol(), " ");
+        scene.traces = vec![back];
+        Rain(&scene).render(area, &mut buffer);
+        assert_eq!(buffer[(0, row)].symbol(), "界");
+    }
+    #[test]
     fn individual_profiles_have_two_distinct_shades() {
         for (name, codes, dark_rgb) in [
             ("Blue", "bB", (0, 119, 170)),
@@ -833,3 +934,7 @@ mod tests {
         assert_eq!(pending.last().unwrap().spans[0].style.fg, Some(color('y')));
     }
 }
+
+#[cfg(test)]
+#[path = "preview.rs"]
+mod preview;
