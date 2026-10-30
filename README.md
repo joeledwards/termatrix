@@ -118,9 +118,10 @@ color. Selection, toggles and artistic palette previews are local UI conventions
 Yellow uses the shared dark-theme RGB (221,204,51) for both panel accents and
 animation, avoiding theme-defined ANSI yellow that may appear brown.
 
-The terminal frontend uses the workspace-local `term-colors` library via a
-path dependency. Publishing requires making that dependency available through
-the release channel first. Ratatui receives RGB swatches directly; it does not
+The terminal frontend requires `term-colors` 0.2.0 (including `Style::swatch()`).
+A local path supports workspace development; packaged builds resolve version 0.2
+from crates.io. Publish term-colors 0.2.0 before packaging/publishing termatrix.
+Ratatui receives RGB swatches directly; it does not
 use the library's ANSI text formatter. This first frontend targets truecolor
 terminals; automatic reduced-depth adaptation remains future work. The control
 panel has explicit dark background and foreground colors.
