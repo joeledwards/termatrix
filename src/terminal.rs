@@ -69,7 +69,7 @@ const PALETTES: [(&str, &str); 11] = [
     ("Purple-green-blue", "mgb"),
     ("Orange-green-blue", "ogb"),
     ("Christmas", "rgw"),
-    ("Blue", "bc"),
+    ("Blue", "bB"),
     ("Grey", "sS"),
     ("Red", "rR"),
     ("Purple", "mM"),
@@ -149,12 +149,13 @@ fn color(c: char) -> Color {
         'm' => Hue::Purple,
         's' => Hue::Grey,
         // Local additions outside the shared seven-hue palette.
-        'G' | 'R' | 'S' | 'M' | 'Y' | 'O' => {
+        'G' | 'R' | 'S' | 'M' | 'Y' | 'O' | 'B' => {
             let [r, g, b] = Palette::theme(Theme::Light)
                 .color(
                     match c {
                         'G' => Hue::Green,
                         'R' => Hue::Red,
+                        'B' => Hue::Blue,
                         'M' => Hue::Purple,
                         'Y' => Hue::Yellow,
                         'O' => Hue::Orange,
@@ -299,6 +300,7 @@ impl Controls<'_> {
                         }
                         let name = match c {
                             'b' => "Blue",
+                            'B' => "Dark blue",
                             'c' => "Cyan",
                             'g' => "Green",
                             'G' => "Dark green",
@@ -540,6 +542,7 @@ mod tests {
     #[test]
     fn individual_profiles_have_two_distinct_shades() {
         for (name, codes, dark_rgb) in [
+            ("Blue", "bB", (0, 119, 170)),
             ("Purple", "mM", (102, 34, 204)),
             ("Yellow", "yY", (204, 153, 0)),
             ("Orange", "oO", (187, 85, 0)),
@@ -560,7 +563,7 @@ mod tests {
     fn named_color_profiles_are_selectable_and_valid() {
         for (name, colors) in [
             ("Green", "gG"),
-            ("Blue", "bc"),
+            ("Blue", "bB"),
             ("Red", "rR"),
             ("Purple", "mM"),
             ("Yellow", "yY"),
@@ -582,7 +585,7 @@ mod tests {
     #[test]
     fn grey_profile_and_preview() {
         let mut s = Settings {
-            colors: "bc".into(),
+            colors: "bB".into(),
             ..Settings::default()
         };
         edit(&mut s, 10, 1.);
