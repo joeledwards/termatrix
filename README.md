@@ -23,7 +23,7 @@ small terminal. Fresh configurations default to the `special` alphabet
 (halfwidth Katakana); saved alphabet choices remain in effect.
 
 Settings are loaded from the platform configuration directory's
-`termatrix/settings.toml`, or `--config` / `TERMATRIX_CONFIG`. In-app edits save
+`termatrix/profiles/default.toml`, or `--config` / `TERMATRIX_CONFIG`. In-app edits save
 after 400ms without further changes and pending edits save on exit. Save failures
 appear in the panel. Saves replace the file atomically using a sibling temporary
 file. Comments are not preserved. External file changes are not watched; do not
@@ -151,3 +151,10 @@ while the panel is hidden or simulation is paused (coverage remains flat while
 paused unless layout changes). Resizes and panel toggles change the denominator;
 this can create an honest discontinuity in measured coverage. Narrow terminals
 show only controls. No extra charting dependency is required.
+
+When the default profile is absent, the previous `termatrix/settings.toml` is
+loaded as a migration fallback. The next live save writes `profiles/default.toml`
+and leaves the legacy file untouched. An existing default profile always wins;
+invalid or unreadable files produce an error rather than silently resetting.
+Explicit `--config` / `TERMATRIX_CONFIG` paths bypass this legacy fallback.
+Named-profile selection and management remain future work.

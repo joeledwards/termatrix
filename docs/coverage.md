@@ -22,6 +22,7 @@
 | Shared dark-theme orange, distinct from yellow | `terminal::tests::orange_uses_shared_dark_palette` |
 | Panel semantic styles, plain-text equivalence, selection, palettes, toggles and save status | `terminal::tests::control_styles_preserve_plain_text_and_selection`, `palette_toggle_and_save_status_have_text_and_color` |
 | Rendering into Ratatui's isolated test backend | `terminal::tests::frame_contains_glyphs` |
+| Default profile directory, legacy fallback, precedence, invalid profile and explicit-path isolation | `persistence::tests::default_profile_location_and_legacy_fallback`, `explicit_missing_file_does_not_inherit_legacy` |
 | File save/load and invalid configuration | `persistence::tests::save_load_and_invalid_file` |
 | Failed replacement cleans temporary files; invalid saves preserve destination | `persistence::tests::failed_replace_cleans_temporary_and_preserves_destination`, `invalid_save_preserves_existing_settings` |
 

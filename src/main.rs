@@ -27,8 +27,13 @@ struct Args {
 }
 fn main() -> io::Result<()> {
     let a = Args::parse();
-    let path = a.config.map(Ok).unwrap_or_else(persistence::default_path)?;
-    let mut s = persistence::load(&path)?;
+    let (path, mut s) = match a.config {
+        Some(path) => {
+            let settings = persistence::load(&path)?;
+            (path, settings)
+        }
+        None => persistence::load_default()?,
+    };
     if let Some(v) = a.colors {
         s.colors = v;
     }

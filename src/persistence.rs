@@ -5,12 +5,23 @@ use std::{
 };
 use termatrix::settings::Settings;
 
-pub fn default_path() -> io::Result<PathBuf> {
-    directories::ProjectDirs::from("", "", "termatrix")
-        .map(|d| d.config_dir().join("settings.toml"))
-        .ok_or_else(|| io::Error::other("cannot locate configuration directory; use --config"))
+pub fn load_default() -> io::Result<(PathBuf, Settings)> {
+    let dirs = directories::ProjectDirs::from("", "", "termatrix")
+        .ok_or_else(|| io::Error::other("cannot locate configuration directory; use --config"))?;
+    load_default_in(dirs.config_dir())
+}
+fn load_default_in(root: &Path) -> io::Result<(PathBuf, Settings)> {
+    let path = root.join("profiles").join("default.toml");
+    let settings = match load_optional(&path)? {
+        Some(settings) => settings,
+        None => load(&root.join("settings.toml"))?,
+    };
+    Ok((path, settings))
 }
 pub fn load(path: &Path) -> io::Result<Settings> {
+    Ok(load_optional(path)?.unwrap_or_default())
+}
+fn load_optional(path: &Path) -> io::Result<Option<Settings>> {
     match fs::read_to_string(path) {
         Ok(text) => {
             let mut table: toml::Table = toml::from_str(&text).map_err(io::Error::other)?;
@@ -19,9 +30,9 @@ pub fn load(path: &Path) -> io::Result<Settings> {
             table.remove("allowed_max_speed");
             let s: Settings = table.try_into().map_err(io::Error::other)?;
             s.validate().map_err(io::Error::other)?;
-            Ok(s)
+            Ok(Some(s))
         }
-        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Settings::default()),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(e),
     }
 }
@@ -45,6 +56,34 @@ pub fn save(path: &Path, settings: &Settings) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn default_profile_location_and_legacy_fallback() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let (path, fresh) = load_default_in(root).unwrap();
+        assert_eq!(path, root.join("profiles/default.toml"));
+        assert_eq!(fresh.glyph_set, "special");
+        assert!(!path.exists());
+        let legacy = root.join("settings.toml");
+        fs::write(&legacy, "glyph_set = 'binary'").unwrap();
+        let (target, migrated) = load_default_in(root).unwrap();
+        assert_eq!(migrated.glyph_set, "binary");
+        save(&target, &migrated).unwrap();
+        assert_eq!(fs::read_to_string(&legacy).unwrap(), "glyph_set = 'binary'");
+        fs::write(&legacy, "glyph_set = 'hex'").unwrap();
+        assert_eq!(load_default_in(root).unwrap().1.glyph_set, "binary");
+        fs::write(&target, "invalid toml [[").unwrap();
+        assert!(load_default_in(root).is_err());
+    }
+    #[test]
+    fn explicit_missing_file_does_not_inherit_legacy() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("settings.toml"), "glyph_set = 'binary'").unwrap();
+        assert_eq!(
+            load(&dir.path().join("custom.toml")).unwrap().glyph_set,
+            "special"
+        );
+    }
     #[test]
     fn obsolete_limits_load_but_are_not_saved_or_enforced() {
         let dir = tempfile::tempdir().unwrap();
