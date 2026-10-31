@@ -1,4 +1,7 @@
-# Release checks for 3.1.0
+# Release checks for 3.1.1
+
+This documentation-only patch refreshes the screenshots and adds the README
+Profiles section. Runtime behavior is unchanged from 3.1.0.
 
 ## Local checks
 
@@ -34,7 +37,16 @@ change in later builds.
 See [coverage](coverage.md) for remaining test gaps. Profile rename/delete, graphical
 frontends and automatic reduced-color adaptation remain future work.
 
-## Preparation evidence
+## Preparation evidence (3.1.1)
+
+- All 56 isolated unit tests pass offline with the locked dependencies.
+- Formatting and Clippy with warnings denied pass.
+- Offline locked package verification passes (24 files), including a packaged build.
+  `--allow-dirty` was used because release preparation is not yet committed.
+- Registry-connected publish dry run and publication have not been run; use the
+  maintainer's private credential context after committing and pushing.
+
+## Previous release preparation evidence (3.1.0)
 
 - 56 isolated unit tests pass.
 - Formatting, Clippy with warnings denied, and the build pass.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.1
+
+- Refresh the main screenshot and add a profile-picker screenshot.
+- Add a README Profiles section describing profile selection and creation.
+
+Runtime behavior is unchanged from 3.1.0.
+
 ## 3.1.0
 
 - Add a `p` profile picker with live switching and creation from current settings,
