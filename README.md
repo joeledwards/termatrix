@@ -3,7 +3,7 @@
 Matrix rain for your terminal, with live controls, layered traces, and colorful
 highlights. Tune the look while it runs—your preferences save automatically.
 
-![Green Matrix rain with live controls and a density chart](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix-3.png)
+![Green Matrix rain with live controls and performance charts](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix-3.png)
 
 *Captured in iTerm on macOS. Fonts and appearance vary by terminal.*
 
@@ -45,8 +45,7 @@ Settings live in your platform's configuration directory under
 `termatrix/profiles/default.toml`—usually
 `~/.config/termatrix/profiles/default.toml` on Linux or
 `~/Library/Application Support/termatrix/profiles/default.toml` on macOS.
-The file is created on your first change. Press `p` to select another profile,
-or `n` inside the picker to save your current settings under a new name.
+The file is created on your first change.
 
 ```sh
 termatrix --config ./my-rain.toml
@@ -56,6 +55,15 @@ termatrix --max-refresh-rate 30
 
 See the [user guide](https://github.com/joeledwards/termatrix/blob/master/docs/guide.md) for settings, custom palettes, and upgrading
 from 2.x. Startup overrides are included in the next automatic save.
+
+## Profiles
+
+Save different looks as named profiles and switch between them while the animation
+runs. Press `p` to open the profile picker, use `↑` / `↓` to select a profile,
+and press Enter to load it. Press `n` inside the picker to save your current
+settings under a new name, or Esc to return to the animation.
+
+![Profile picker with colorful Matrix rain and saved profiles](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix-3-profiles.png)
 
 ## Development
 
