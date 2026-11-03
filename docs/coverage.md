@@ -14,7 +14,7 @@
 | Exclusive atomic creation and temporary cleanup | `persistence::tests::create_never_overwrites_and_cleans_temporary_files` |
 | Profile name from filename stem, Unicode/custom paths, fallback and save-status text/colors | `terminal::tests::profile_label_uses_filename_stem_without_exposing_directory`, `palette_toggle_and_save_status_have_text_and_color`, `control_styles_preserve_plain_text_and_selection` |
 | Individual colors default off; saved true values preserved | `settings::tests::individual_colors_default_off_and_preserve_saved_choice` |
-| Tuned fresh/omitted defaults, valid settings and preservation of saved preferences | `settings::tests::tuned_defaults_and_saved_preferences` |
+| Tuned fresh/omitted defaults (including density 2.0, clumping 0.8 and maximum length 40), valid settings and preservation of saved preferences | `settings::tests::tuned_defaults_and_saved_preferences` |
 | Fresh special alphabet defaults; saved choices preserved | `settings::tests::fresh_defaults_use_special_and_saved_choice_wins` |
 | Compiled speed limits, UI clamping, obsolete settings migration and save cleanup | `settings::tests::speed_hard_limits_are_internal_and_validated`, `terminal::tests::speed_controls_clamp_at_compiled_limits`, `persistence::tests::obsolete_limits_load_but_are_not_saved_or_enforced` |
 | Chart sampling cadence, bounded history, empty canvas and occlusion accounting | `metrics::tests::sampling_is_bounded_independent_and_handles_empty_canvas`, `overlapping_traces_count_only_once` |

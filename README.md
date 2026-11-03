@@ -3,9 +3,9 @@
 Matrix rain for your terminal, with live controls, layered traces, and colorful
 highlights. Tune the look while it runs—your preferences save automatically.
 
-![Green Matrix rain with live controls and performance charts](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix-3.png)
+![Green Matrix rain with live controls and performance charts](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix-sample.png)
 
-*Captured in iTerm on macOS. Fonts and appearance vary by terminal.*
+*Fonts and appearance vary by terminal.*
 
 ## Install and run
 
@@ -47,6 +47,8 @@ actual FPS, and frame work time. Wider terminals add Braille charts for frame wo
 coverage, and trace count, sharing ten minutes of history and adjustable time
 compression. Press `?` for a full canvas.
 
+![Green Matrix rain with the control panel hidden](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix-small-no-control-panel.png)
+
 ## Preferences
 
 Settings live in your platform's configuration directory under
@@ -71,7 +73,7 @@ runs. Press `p` to open the profile picker, use `↑` / `↓` to select a profil
 and press Enter to load it. Press `n` inside the picker to save your current
 settings under a new name, or Esc to return to the animation.
 
-![Profile picker with colorful Matrix rain and saved profiles](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix-3-profiles.png)
+![Profile picker with colorful Matrix rain and saved profiles](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix-profiles.png)
 
 ## Custom palettes
 
@@ -81,6 +83,8 @@ palette in the Palette setting. Names preview their colors, and the rain preview
 selections live. Enter applies a palette; Esc returns without changing your choice.
 Custom palettes support repeated codes for weighting. Built-ins can be hidden;
 custom palettes can also be deleted. See the [palette guide](https://github.com/joeledwards/termatrix/blob/master/docs/guide.md#palette-manager).
+
+![Palette manager with built-in and custom palettes](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix-palettes.png)
 
 ## Development
 

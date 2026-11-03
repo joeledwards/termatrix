@@ -32,10 +32,10 @@ impl Default for Settings {
             min_speed: 2.,
             max_speed: 12.,
             speed_bias: 0.,
-            density: 1.7,
-            clumping: 0.7,
+            density: 2.0,
+            clumping: 0.8,
             min_length: 4,
-            max_length: 32,
+            max_length: 40,
             mutation_rate: 0.05,
             colors: "gG".into(),
             per_glyph_colors: false,
@@ -120,8 +120,8 @@ mod tests {
                 (settings.min_speed, settings.max_speed, settings.speed_bias),
                 (2., 12., 0.)
             );
-            assert_eq!((settings.density, settings.clumping), (1.7, 0.7));
-            assert_eq!((settings.min_length, settings.max_length), (4, 32));
+            assert_eq!((settings.density, settings.clumping), (2.0, 0.8));
+            assert_eq!((settings.min_length, settings.max_length), (4, 40));
             assert_eq!(settings.mutation_rate, 0.05);
             assert_eq!(settings.max_refresh_rate, 60);
             assert!(settings.canvas_relative);

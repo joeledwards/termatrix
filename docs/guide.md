@@ -192,7 +192,7 @@ Terminal-customized ANSI palettes can affect these approximations.
 ## Fresh-profile defaults
 
 Speed ranges from 2 to 12 with uniform bias (0), using canvas-relative speed.
-Density is 1.7 and clumping is 0.7. Traces contain 4–32 glyphs, mutation rate
+Density is 2.0 and clumping is 0.8. Traces contain 4–40 glyphs, mutation rate
 is 0.05, and the refresh cap is 60 Hz. The palette is Green (`gG`), alphabet
 is Special (Katakana), individual glyph colors are off, and highlights occur
 with 2% probability. Chart compression is 6 and the controls panel starts visible.
