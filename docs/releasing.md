@@ -1,6 +1,7 @@
-# Release checks for 3.3.0
+# Release checks for 3.3.1
 
-Shared custom palette management, visibility controls, and live previews via `c`.
+Fresh-default tuning, matching purple dialog outlines/headings, and refreshed
+README screenshots. Shared custom palette management remains available via `c`.
 Profiles retain raw color codes and remain compatible with previous releases.
 See the [palette guide](guide.md#palette-manager) and
 [implementation notes](palette-manager-plan.md).
@@ -31,15 +32,25 @@ Before publishing, verify fresh defaults, saved preferences, pause/resume, all e
 keys, and terminal restoration on your target platforms. The backend supports
 Linux/macOS/Windows; this is not a claim of platform-by-platform visual validation.
 
-The README uses `docs/images/termatrix-3.png`, captured by the developer in iTerm
-on macOS. Keep the repository URL in the README so the image displays on crates.io
-after pushing. A screenshot records a particular configuration; panel details may
-change in later builds.
+The README uses four PNG screenshots under `docs/images/`. Keep repository URLs
+so the images display on crates.io after pushing. Screenshots are retained as
+captured; the palette-manager screenshot predates the matching purple outline
+and heading. GIFs and source video are not part of this release.
 
 See [coverage](coverage.md) for remaining test gaps. Profile rename/delete, graphical
 frontends and arbitrary RGB palette editing remain future work.
 
-## Preparation evidence (3.3.0)
+## Preparation evidence (3.3.1)
+
+- All 70 isolated unit tests pass offline with locked dependencies.
+- Formatting, Clippy with warnings denied, and diff whitespace checks pass.
+- Offline locked package verification passes (30 files), including a packaged build.
+  `--allow-dirty` was used before committing. Package contents include the four
+  new PNG screenshots and exclude GIFs and source video.
+- Screenshots remain unchanged by request. Interactive terminal checks, publishing,
+  pushing and tagging have not been run by the agent.
+
+## Previous release preparation evidence (3.3.0)
 
 - All 70 isolated unit tests pass offline with locked dependencies.
 - Formatting, Clippy with warnings denied, build and diff whitespace checks pass.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.1
+
+- Tune fresh defaults to density 2.0, clumping 0.8 and maximum trace length 40.
+  Saved preferences continue to take precedence.
+- Match palette-manager outlines and headings to the profile picker in purple.
+- Refresh README screenshots for the rain, controls, profiles and palettes.
+
 ## 3.3.0
 
 - Wrap controls-panel command hints to available width so pause and quit remain

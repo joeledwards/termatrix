@@ -2,6 +2,7 @@
 
 | Behavior | Isolated unit coverage |
 | --- | --- |
+| Profile and palette dialogs use matching purple outlines and headings | `profiles::tests::picker_renders_selected_profile_creation_and_errors`, `palettes::tests::manager_navigation_rendering_editing_and_builtin_protection` |
 | Command hints remain visible at 32–120 columns, running/paused, with selected setting and profile status preserved | `terminal::tests::control_help_keeps_all_commands_visible_at_panel_widths` |
 | Shared catalog defaults, weighted codes, round-trip and invalid files/names/colors | `palettes::tests::catalog_defaults_roundtrip_validation_and_weighted_colors` |
 | Visible-only cycling with hidden/custom/profile color compatibility | `palettes::tests::cycling_skips_hidden_but_profiles_keep_their_codes` |
@@ -67,7 +68,7 @@ Manual checks proposed (not run by the agent): start in a terminal, toggle `?`,
 resize including a very small window, change settings, pause/resume, exit via each
 supported key, restart to check persistence, and compare both speed mappings.
 
-3.3.0 preparation: 70 isolated unit tests pass; formatting, Clippy and packaged build
+3.3.1 preparation: 70 isolated unit tests pass; formatting, Clippy and packaged build
 pass. Developer visual feedback accepted the green/highlight combination, live
 controls, Braille chart and resize behavior. The agent did not run interactive
 terminal checks. Remaining gaps above are release follow-up work.

@@ -91,7 +91,8 @@ controls are hidden. Use arrows to select and Enter to load. Press `n`, or selec
 **Create new profile**, to copy the current settings to a new named profile.
 Type a name without `.toml` and press Enter; Backspace edits, Esc returns to the
 list, and Esc or `p` in the list closes it. Keys are yellow, descriptions white,
-profile names blue, creation actions green, and errors red. The selected row has
+profile names blue, creation actions green, and errors red. The profile picker and
+palette manager share purple outlines and headings. The selected row has
 a yellow pointer and a shaded background. Ctrl+C still exits the application.
 Other animation shortcuts are captured while the picker is open. Animation continues.
 

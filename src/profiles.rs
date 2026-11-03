@@ -253,6 +253,15 @@ mod tests {
             );
         };
         let list = render(&picker);
+        assert_color(&list, "Config Profiles", Color::Magenta);
+        for x in 0..area.width {
+            assert_eq!(list[(x, 0)].fg, COLORS.title);
+            assert_eq!(list[(x, area.height - 1)].fg, COLORS.title);
+        }
+        for y in 0..area.height {
+            assert_eq!(list[(0, y)].fg, COLORS.title);
+            assert_eq!(list[(area.width - 1, y)].fg, COLORS.title);
+        }
         assert!(text(&list).contains("> night"));
         assert_color(&list, "Enter", Color::Yellow);
         assert_color(&list, " select", Color::White);

@@ -357,6 +357,8 @@ impl Manager {
         let block = Block::default()
             .borders(Borders::ALL)
             .title("Palettes")
+            .border_style(Style::default().fg(crate::terminal::color('m')))
+            .title_style(Style::default().fg(crate::terminal::color('m')))
             .style(
                 Style::default()
                     .fg(crate::terminal::color('w'))
@@ -625,6 +627,14 @@ mod tests {
         let area = Rect::new(0, 0, 76, 22);
         let mut buf = Buffer::empty(area);
         m.render(area, &mut buf, &c);
+        for x in 0..area.width {
+            assert_eq!(buf[(x, 0)].fg, crate::terminal::color('m'));
+            assert_eq!(buf[(x, area.height - 1)].fg, crate::terminal::color('m'));
+        }
+        for y in 0..area.height {
+            assert_eq!(buf[(0, y)].fg, crate::terminal::color('m'));
+            assert_eq!(buf[(area.width - 1, y)].fg, crate::terminal::color('m'));
+        }
         let text = buf
             .content
             .iter()
