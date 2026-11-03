@@ -24,7 +24,7 @@ use termatrix::{
     model::Scene,
     settings::{Settings, MAX_TRACE_SPEED, MIN_TRACE_SPEED},
 };
-use unicode_width::UnicodeWidthChar;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 fn restore_output(writer: &mut impl io::Write) -> io::Result<()> {
     execute!(
         writer,
@@ -434,6 +434,55 @@ impl SaveState {
         Ok(())
     }
 }
+/// Wrap help independently from setting values, preserving styled keys.
+fn control_help(width: usize, paused: bool) -> Vec<Line<'static>> {
+    let width = width.max(1);
+    let mut lines = vec![Line::default()];
+    let mut used: usize = 0;
+    let mut commands = vec![
+        ("?", " controls"),
+        ("p", " profiles"),
+        ("c", " palettes"),
+        ("↑↓", " select"),
+        ("←→", " adjust"),
+        ("Space", " pause"),
+        ("q", " quit"),
+    ];
+    if paused {
+        commands.push(("Paused", ""));
+    }
+    for (key, description) in commands {
+        let length = key.width() + description.width();
+        if used > 0 {
+            if used.saturating_add(3).saturating_add(length) <= width {
+                lines
+                    .last_mut()
+                    .unwrap()
+                    .spans
+                    .push(Span::styled(" | ", Style::default().fg(color('s'))));
+                used += 3;
+            } else {
+                lines.push(Line::default());
+                used = 0;
+            }
+        }
+        for (text, hue) in [(key, 'y'), (description, 's')] {
+            for ch in text.chars() {
+                let cells = ch.width().unwrap_or(0);
+                if used + cells > width && used > 0 {
+                    lines.push(Line::default());
+                    used = 0;
+                }
+                lines.last_mut().unwrap().spans.push(Span::styled(
+                    ch.to_string(),
+                    Style::default().fg(color(hue)),
+                ));
+                used += cells;
+            }
+        }
+    }
+    lines
+}
 struct Controls<'a> {
     catalog: Option<&'a crate::palettes::Catalog>,
     settings: &'a Settings,
@@ -444,28 +493,16 @@ struct Controls<'a> {
     pending: bool,
 }
 impl Controls<'_> {
+    #[cfg(test)]
     fn lines(&self, height: u16) -> Vec<Line<'static>> {
-        let grey = Style::default().fg(color('s'));
+        self.lines_for_size(height, usize::MAX)
+    }
+    fn lines_for_size(&self, height: u16, width: usize) -> Vec<Line<'static>> {
         let yellow = Style::default().fg(color('y'));
         let orange = Style::default().fg(color('o'));
-        let mut hints = Vec::new();
-        for (key, meaning) in [
-            ("?", " controls | "),
-            ("p", " profiles | "),
-            ("c", " palettes | "),
-            ("↑↓", " select "),
-            ("←→", " adjust | "),
-            ("Space", " pause | "),
-            ("q", " quit"),
-        ] {
-            hints.push(Span::styled(key, yellow));
-            hints.push(Span::styled(meaning, grey));
-        }
-        if self.paused {
-            hints.push(Span::styled(" | Paused", yellow));
-        }
-        let mut lines = vec![Line::from(hints)];
-        for i in settings_window(height, self.selected) {
+        let mut lines = control_help(width, self.paused);
+        let extra_help = lines.len().saturating_sub(1).min(u16::MAX as usize) as u16;
+        for i in settings_window(height.saturating_sub(extra_help), self.selected) {
             let selected = i == self.selected;
             let mut spans = vec![
                 Span::styled(if selected { "> " } else { "  " }, yellow),
@@ -545,7 +582,7 @@ impl Controls<'_> {
 }
 impl Widget for Controls<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new(self.lines(area.height))
+        Paragraph::new(self.lines_for_size(area.height, area.width.saturating_sub(2) as usize))
             .style(Style::default().fg(color('w')).bg(Color::Rgb(17, 17, 17)))
             .block(
                 Block::default()
@@ -1721,6 +1758,50 @@ mod tests {
     fn orange_uses_shared_dark_palette() {
         assert_eq!(color('o'), Color::Rgb(238, 136, 51));
         assert_ne!(color('o'), color('y'));
+    }
+    #[test]
+    fn control_help_keeps_all_commands_visible_at_panel_widths() {
+        let settings = Settings::default();
+        for width in [32, 40, 60, 72, 80, 120] {
+            for paused in [false, true] {
+                let controls = Controls {
+                    catalog: None,
+                    settings: &settings,
+                    selected: 14,
+                    paused,
+                    path: std::path::Path::new("default.toml"),
+                    status: &SaveStatus::Saved,
+                    pending: false,
+                };
+                let area = Rect::new(0, 0, width, 12);
+                let mut buffer = Buffer::empty(area);
+                controls.render(area, &mut buffer);
+                let text = buffer
+                    .content
+                    .iter()
+                    .map(|c| c.symbol())
+                    .collect::<String>();
+                for command in [
+                    "? controls",
+                    "p profiles",
+                    "c palettes",
+                    "↑↓ select",
+                    "←→ adjust",
+                    "Space pause",
+                    "q quit",
+                ] {
+                    assert!(
+                        text.contains(command),
+                        "missing {command} at width {width}, paused={paused}"
+                    );
+                }
+                assert!(text.contains("> Chart compression:"));
+                assert!(text.contains("Config Profile: default"));
+                if paused {
+                    assert!(text.contains("Paused"));
+                }
+            }
+        }
     }
     #[test]
     fn controls_validate() {

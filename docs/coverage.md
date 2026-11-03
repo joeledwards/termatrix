@@ -1,13 +1,14 @@
 # Behavior-to-test coverage
 
 | Behavior | Isolated unit coverage |
+| --- | --- |
+| Command hints remain visible at 32–120 columns, running/paused, with selected setting and profile status preserved | `terminal::tests::control_help_keeps_all_commands_visible_at_panel_widths` |
 | Shared catalog defaults, weighted codes, round-trip and invalid files/names/colors | `palettes::tests::catalog_defaults_roundtrip_validation_and_weighted_colors` |
 | Visible-only cycling with hidden/custom/profile color compatibility | `palettes::tests::cycling_skips_hidden_but_profiles_keep_their_codes` |
 | Manager creation/edit/rename/delete, deletion cancellation, hidden rename, selected codes and preserved active profile | `palettes::tests::manager_create_edit_delete_cancel_and_profile_preservation` |
 | Last-visible protection (hide/delete), duplicate-name errors and atomic save failure cleanup/preservation for creation/edit/delete | `palettes::tests::last_visible_and_save_failures_preserve_catalog_and_cleanup`, `failed_creation_edit_and_deletion_preserve_saved_and_active_colors` |
 | Shared custom names styled in controls, including hidden selections | `terminal::tests::shared_custom_palette_name_is_styled_in_controls_even_when_hidden` |
 | Navigation/wrapping, builtin protection, tiny/normal layout, styled names, editor preview validation and errors | `palettes::tests::manager_navigation_rendering_editing_and_builtin_protection` |
-| --- | --- |
 | Profile discovery/filtering, keyboard navigation, creation editing, cancellation, portable names and semantic modal colors (keys/descriptions/names/create/errors) | `profiles::tests::discovery_filters_sorts_and_selects_current_with_scrolling`, `empty_directory_creation_editing_errors_and_cancellation`, `profile_names_are_portable_and_cannot_escape_directory`, `picker_renders_selected_profile_creation_and_errors` |
 | Profile switch/copy, old-profile save, invalid/missing destinations and failure preservation | `terminal::tests::profile_switch_saves_pending_and_loads_or_copies_settings`, `failed_profile_changes_preserve_active_path_settings_and_pending_save` |
 | Exclusive atomic creation and temporary cleanup | `persistence::tests::create_never_overwrites_and_cleans_temporary_files` |
@@ -66,7 +67,7 @@ Manual checks proposed (not run by the agent): start in a terminal, toggle `?`,
 resize including a very small window, change settings, pause/resume, exit via each
 supported key, restart to check persistence, and compare both speed mappings.
 
-3.3.0 preparation: 69 isolated unit tests pass; formatting, Clippy and packaged build
+3.3.0 preparation: 70 isolated unit tests pass; formatting, Clippy and packaged build
 pass. Developer visual feedback accepted the green/highlight combination, live
 controls, Braille chart and resize behavior. The agent did not run interactive
 terminal checks. Remaining gaps above are release follow-up work.

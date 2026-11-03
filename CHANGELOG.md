@@ -2,6 +2,9 @@
 
 ## 3.3.0
 
+- Wrap controls-panel command hints to available width so pause and quit remain
+  visible; adjust the settings window for additional help rows.
+
 - Add a `c` palette manager with named custom weighted color-code palettes, live
   previews, editing and confirmed deletion.
 - Show/hide built-in and custom palettes when cycling; keep at least one visible.

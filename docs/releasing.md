@@ -41,7 +41,7 @@ frontends and arbitrary RGB palette editing remain future work.
 
 ## Preparation evidence (3.3.0)
 
-- All 69 isolated unit tests pass offline with locked dependencies.
+- All 70 isolated unit tests pass offline with locked dependencies.
 - Formatting, Clippy with warnings denied, build and diff whitespace checks pass.
 - Offline locked package verification passes (26 files), including a packaged build.
   Package contents include `src/palettes.rs`, the guide and implementation notes;
@@ -61,6 +61,8 @@ Proposed for the developer; not run by the agent:
 - Confirm hidden palettes still load, and editing/deleting entries preserves saved colors.
 - Check delete confirmation, last-visible protection and errors for invalid codes/names.
 - Resize the manager, preview while paused, and quit via Ctrl+C to check restoration.
+- Verify all command hints, including Space pause and q quit, remain visible at
+  narrow panel widths; graph minimum widths remain at 40 columns.
 
 ## Previous release preparation evidence (3.2.0)
 

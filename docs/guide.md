@@ -244,3 +244,7 @@ colors = "rrroY"
 ```
 
 Arbitrary RGB hex colors are deferred.
+
+The controls-panel command hints wrap to fit the available width. Extra hint
+rows reduce the visible settings list; scrolling keeps the selected setting in
+view. Very small panels can still lack room for all help and status rows.
