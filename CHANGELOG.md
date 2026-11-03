@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.2.0
+
+- Fade traces from head through primary color toward black or white, preserving the terminal background, with light/dark theme
+  selection and automatic RGB, 256-color or ANSI approximation.
+- Keep the final glyph faintly visible instead of fading fully to black or white.
+- Cache reduced-color fade conversions across frames instead of searching the ANSI
+  palette for every glyph; preserve exact colors and the truecolor fast path.
+- Tune fresh defaults: density 1.7, clumping 0.7, maximum trace length 32,
+  canvas-relative speed on, and highlight probability 2%; keep controls visible.
+- Simplify individual palette previews to a single primary-colored name.
+- Remove cyan from the built-in Rainbow palette and color mixed palette names
+  directly, including Rainbow and Christmas, instead of appending color labels.
+
+Saved settings remain compatible and override fresh defaults. Existing custom
+palettes containing cyan remain supported.
+
 ## 3.1.1
 
 - Refresh the main screenshot and add a profile-picker screenshot.

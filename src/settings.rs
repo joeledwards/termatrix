@@ -32,16 +32,16 @@ impl Default for Settings {
             min_speed: 2.,
             max_speed: 12.,
             speed_bias: 0.,
-            density: 1.5,
-            clumping: 0.,
+            density: 1.7,
+            clumping: 0.7,
             min_length: 4,
-            max_length: 24,
+            max_length: 32,
             mutation_rate: 0.05,
             colors: "gG".into(),
             per_glyph_colors: false,
-            highlight_probability: 0.12,
+            highlight_probability: 0.02,
             glyph_set: "special".into(),
-            canvas_relative: false,
+            canvas_relative: true,
             max_refresh_rate: 60,
             chart_compression: 6.,
             panel: true,
@@ -112,6 +112,36 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn tuned_defaults_and_saved_preferences() {
+        for settings in [Settings::default(), toml::from_str::<Settings>("").unwrap()] {
+            settings.validate().unwrap();
+            assert_eq!(
+                (settings.min_speed, settings.max_speed, settings.speed_bias),
+                (2., 12., 0.)
+            );
+            assert_eq!((settings.density, settings.clumping), (1.7, 0.7));
+            assert_eq!((settings.min_length, settings.max_length), (4, 32));
+            assert_eq!(settings.mutation_rate, 0.05);
+            assert_eq!(settings.max_refresh_rate, 60);
+            assert!(settings.canvas_relative);
+            assert_eq!(settings.colors, "gG");
+            assert_eq!(settings.glyph_set, "special");
+            assert!(!settings.per_glyph_colors);
+            assert_eq!(settings.highlight_probability, 0.02);
+            assert_eq!(settings.chart_compression, 6.);
+            assert!(settings.panel);
+        }
+        let saved: Settings = toml::from_str("density = 1.5\nclumping = 0.0\nmax_length = 24\ncanvas_relative = false\nhighlight_probability = 0.12\npanel = false").unwrap();
+        assert_eq!(
+            (saved.density, saved.clumping, saved.max_length),
+            (1.5, 0., 24)
+        );
+        assert!(!saved.canvas_relative);
+        assert_eq!(saved.highlight_probability, 0.12);
+        assert!(!saved.panel);
+        assert_eq!(saved.min_speed, 2.);
+    }
     #[test]
     fn chart_compression_defaults_persists_and_validates() {
         let mut settings: Settings = toml::from_str("").unwrap();

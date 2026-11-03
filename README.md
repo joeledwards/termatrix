@@ -30,9 +30,16 @@ visually checked by the developer on their terminal. Run `termatrix --help` for 
 | `q`, Esc, Ctrl+C | Quit |
 
 Adjust speed, density, clumping, trace length, alphabet, palettes, and highlights.
-Choose two-shade Green, Blue, Red, Purple, Yellow, Orange, or Grey; try Rainbow,
+Choose Green, Blue, Red, Purple, Yellow, Orange, or Grey gradients; try Rainbow,
 Christmas, or a mixed palette. Enable **Individual glyph colors** to mix colors
 within each trace. The default is green Katakana with scattered highlights and one color per trace.
+
+Traces fade from a white head through their primary color toward black.
+Use `--theme light` for black heads fading through color toward white, or
+`--theme dark` to select the dark-theme fade. The rain preserves your terminal background. The default `--theme auto` reads
+`COLORFGBG` and falls back to dark; `TERMATRIX_THEME` also sets the theme.
+Truecolor terminals get smooth gradients; 256-color and basic ANSI terminals
+get stepped approximations. Existing highlighted glyphs interrupt the fade.
 
 The controls resize with your terminal. The performance section shows trace count,
 actual FPS, and frame work time. Wider terminals add Braille charts for frame work,

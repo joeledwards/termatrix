@@ -778,7 +778,7 @@ checksum = "f23e65d9c92a3bc9b6a4d6ac0f75ac7ed949d66380341d1f16a320ddf4eb2057"
 
 [[package]]
 name = "termatrix"
-version = "3.1.1"
+version = "3.2.0"
 dependencies = [
  "clap",
  "crossterm",

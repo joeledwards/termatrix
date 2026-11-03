@@ -15,6 +15,8 @@ pub struct Sample {
     pub color: char,
     pub highlight: Highlight,
     pub trace_id: u64,
+    /// Normalized distance behind the head, independent of viewport clipping.
+    pub progress: f64,
 }
 /// Returns visible samples after depth occlusion. Hidden traces are never modified.
 /// A sample occupies a whole logical lane; frontends allocate its glyph footprint.
@@ -48,6 +50,7 @@ pub fn orthographic(scene: &Scene) -> Vec<Sample> {
                         Highlight::Body
                     },
                     trace_id: t.id,
+                    progress: i as f64 / t.glyphs.len().saturating_sub(1).max(1) as f64,
                 },
             );
         }

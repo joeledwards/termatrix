@@ -13,7 +13,7 @@ struct Args {
     /// Preferences file (default: platform config directory / termatrix/profiles/default.toml).
     #[arg(long, env = "TERMATRIX_CONFIG")]
     config: Option<PathBuf>,
-    /// Weighted color codes, e.g. gG (green) or roygcbm (rainbow).
+    /// Weighted color codes, e.g. gG (green) or roygbm (rainbow).
     #[arg(short = 'c', long, env = "TERMATRIX_COLORS")]
     colors: Option<String>,
     /// Alphabet, e.g. special (Katakana), binary, alpha, or hex.
@@ -27,6 +27,9 @@ struct Args {
         env = "TERMATRIX_MAX_REFRESH_RATE"
     )]
     max_refresh_rate: Option<u16>,
+    /// Background theme; auto uses COLORFGBG, falling back to dark.
+    #[arg(long, env = "TERMATRIX_THEME", default_value = "auto")]
+    theme: terminal::Theme,
     /// Random seed for reproducible animation with identical simulation inputs.
     #[arg(long, default_value_t = 42)]
     seed: u64,
@@ -58,5 +61,5 @@ fn main() -> io::Result<()> {
             "requires an interactive cursor-capable terminal",
         ));
     }
-    terminal::run(s, path, a.seed)
+    terminal::run(s, path, a.seed, a.theme)
 }

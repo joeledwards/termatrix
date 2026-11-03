@@ -180,7 +180,10 @@ mod tests {
     }
     #[test]
     fn empty_resize_density_and_lifecycle() {
-        let mut s = Settings::default();
+        let mut s = Settings {
+            canvas_relative: false,
+            ..Settings::default()
+        };
         let mut a = Scene::new(1);
         a.advance(1., &s);
         assert!(a.traces.is_empty());
@@ -222,6 +225,7 @@ mod tests {
         scene.resize(4, 100);
         let mut settings = Settings {
             mutation_rate: 0.,
+            canvas_relative: false,
             ..Settings::default()
         };
         for _ in 0..100 {

@@ -5,3 +5,8 @@
 - Additional performance metrics alongside the visible glyph density chart.
 - Complete coverage gaps in docs/coverage.md before release.
 - Graphical/OpenGL frontend using the library scene and projection boundary.
+
+## Next release
+
+- [Custom palette manager and palette visibility](docs/palette-manager-plan.md),
+  following the 3.2.0 gradient release.

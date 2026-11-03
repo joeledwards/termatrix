@@ -23,9 +23,9 @@ restores the terminal and exits.
 | Highlight probability | Chance a glyph receives a stable bright/bold accent; 0 disables accents |
 | Chart compression | 0 is linear; higher values expand recent history (0–10, default 6; arrows adjust by 0.5) |
 
-Heads remain white. The older half of each trace uses 60% of its selected RGB
-channel values for consistent tail shading across terminals; highlighted glyphs
-retain their bright accents. Hidden traces continue moving and can reappear. Startup is
+Heads fade through the primary color toward black or white according to the
+selected theme, with faintly visible tails; highlighted glyphs retain their
+bright accents. See [trace fading](#trace-fading-and-terminal-capabilities). Hidden traces continue moving and can reappear. Startup is
 empty; coverage grows as traces enter from the top. The chart measures visible
 coverage after occlusion, not the population target controlled by Density.
 It samples at 5 Hz, retains ten minutes, and counts overlapping glyphs once.
@@ -113,7 +113,13 @@ is not remembered across launches. Rename/delete files outside the application.
 The `colors` string is a weighted list. Repeat a code to increase its weight.
 Single letters remain supported even when the built-in profile uses two shades.
 
-| Codes | Color pair |
+Individual palette previews show one name in the primary color (for example,
+**Green**), while mixed palettes show their colors within the name itself. Rainbow uses
+red, orange, yellow, green, blue, and purple, repeating red for the final letter;
+Christmas cycles red, green, and white. Cyan remains available in custom palettes.
+Saved palette codes and shade choices remain supported.
+
+| Codes | Palette |
 | --- | --- |
 | `gG` | Green |
 | `bB` | Blue |
@@ -125,8 +131,7 @@ Single letters remain supported even when the built-in profile uses two shades.
 | `c`, `w`, `k` | Cyan, white, black |
 
 Lowercase is the brighter shade, uppercase the darker shade. Both use explicit
-RGB from term-colors; cyan, white and black are local additions. Truecolor is the
-current target; automatic reduced-depth adaptation is not implemented.
+RGB from term-colors; cyan, white and black are local additions. Rain adapts automatically to truecolor, 256-color, or ANSI terminals.
 
 ```toml
 colors = "ggbB"
@@ -148,6 +153,7 @@ scalars, not grapheme clusters; font support affects appearance.
 | `-c`, `--colors` | `TERMATRIX_COLORS` |
 | `-g`, `--glyph-set` | `TERMATRIX_GLYPH_SET` |
 | `-f`, `--max-refresh-rate` | `TERMATRIX_MAX_REFRESH_RATE` |
+| `--theme auto\|dark\|light` | `TERMATRIX_THEME` |
 | `--seed` | None (default 42) |
 
 `--help` and `--version` work without a terminal. The animation requires interactive
@@ -162,3 +168,32 @@ The refresh environment variable is now `TERMATRIX_MAX_REFRESH_RATE`.
 `--min-step-delay` and `--max-step-delay` have been replaced by Min/Max speed in
 the panel or `min_speed` / `max_speed` in TOML. They are not millisecond values.
 Use `p` to switch or create profiles; renaming and deleting remain manual file operations.
+
+## Trace fading and terminal capabilities
+
+`--theme auto|dark|light` (environment: `TERMATRIX_THEME`) controls the rain
+foreground fade; it does not set the terminal background. Auto uses the final ANSI background index in `COLORFGBG`: 7 and 9–15
+select light; other or missing values select dark. No terminal background query
+is sent. Explicit themes override detection. The controls retain their dark panel.
+
+The head starts at white (dark theme) or black (light theme), reaches the chosen
+trace/glyph color at 30% of the trace, and fades toward black (dark theme) or white (light theme) at its tail. The tail retains 15% of the primary color with a small contrast
+floor, so the final glyph stays visible. Reduced-color approximation excludes
+the black/white fade endpoint for trailing glyphs.
+A one-glyph trace is a head. Clipping does not restart the gradient. Highlighted
+glyphs keep their existing probability and lifetime, with a strong lift toward
+the head color. Position-based highlights are not currently provided.
+
+`COLORTERM=truecolor|24bit` (case-insensitive) or a `TERM` containing `direct`
+selects RGB. Otherwise `TERM` containing `256color` selects the nearest xterm
+256-color entry; other capable terminals use the nearest standard ANSI entry.
+Terminal-customized ANSI palettes can affect these approximations.
+
+## Fresh-profile defaults
+
+Speed ranges from 2 to 12 with uniform bias (0), using canvas-relative speed.
+Density is 1.7 and clumping is 0.7. Traces contain 4–32 glyphs, mutation rate
+is 0.05, and the refresh cap is 60 Hz. The palette is Green (`gG`), alphabet
+is Special (Katakana), individual glyph colors are off, and highlights occur
+with 2% probability. Chart compression is 6 and the controls panel starts visible.
+Saved preferences override defaults; omitted settings use these defaults.

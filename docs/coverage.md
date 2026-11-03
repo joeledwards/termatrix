@@ -7,6 +7,7 @@
 | Exclusive atomic creation and temporary cleanup | `persistence::tests::create_never_overwrites_and_cleans_temporary_files` |
 | Profile name from filename stem, Unicode/custom paths, fallback and save-status text/colors | `terminal::tests::profile_label_uses_filename_stem_without_exposing_directory`, `palette_toggle_and_save_status_have_text_and_color`, `control_styles_preserve_plain_text_and_selection` |
 | Individual colors default off; saved true values preserved | `settings::tests::individual_colors_default_off_and_preserve_saved_choice` |
+| Tuned fresh/omitted defaults, valid settings and preservation of saved preferences | `settings::tests::tuned_defaults_and_saved_preferences` |
 | Fresh special alphabet defaults; saved choices preserved | `settings::tests::fresh_defaults_use_special_and_saved_choice_wins` |
 | Compiled speed limits, UI clamping, obsolete settings migration and save cleanup | `settings::tests::speed_hard_limits_are_internal_and_validated`, `terminal::tests::speed_controls_clamp_at_compiled_limits`, `persistence::tests::obsolete_limits_load_but_are_not_saved_or_enforced` |
 | Chart sampling cadence, bounded history, empty canvas and occlusion accounting | `metrics::tests::sampling_is_bounded_independent_and_handles_empty_canvas`, `overlapping_traces_count_only_once` |
@@ -26,11 +27,13 @@
 | Depth ordering, non-destructive occlusion and background reveal | `projection::tests::occlusion_is_non_destructive_and_reveals_background` |
 | Live controls stay within validated limits | `terminal::tests::controls_validate` |
 | 12-row panel, tiny layouts, hidden panel, scrolling selection | `terminal::tests::tiny_layout`, `panel_shows_eight_settings_and_keeps_selection_visible` |
-| Explicit RGB tails across palettes, no dim attribute, unchanged bodies/heads/accents | `terminal::tests::rendered_tails_use_explicit_rgb_without_dim_and_preserve_accents` |
+| Continuous RGB fade across palettes, head/tail endpoints, bold accents and no dim attribute | `terminal::tests::rendered_tails_use_explicit_rgb_without_dim_and_preserve_accents` |
 | Green default, live stable highlighting, probability endpoints and projected accents | `model::tests::highlight_probability_is_live_stable_and_projected`, `terminal::tests::green_shades_and_highlight_have_explicit_contrast` |
 | Two-shade Blue/Purple/Yellow/Orange palette sampling and RGB contrast | `terminal::tests::individual_profiles_have_two_distinct_shades` |
 | Green/Blue labels, two red shades and named profiles | `terminal::tests::named_color_profiles_are_selectable_and_valid` |
-| Two-shade Grey profile selection, validation and styled preview | `terminal::tests::grey_profile_and_preview` |
+| Rainbow excludes cyan; mixed palette names carry each hue without duplicate labels | `terminal::tests::named_mixed_palettes_color_the_name_without_duplicate_labels` |
+| Individual palette previews show one primary-colored name; mixed names carry their colors | `terminal::tests::individual_palette_previews_show_one_primary_name`, `palette_toggle_and_save_status_have_text_and_color` |
+| Two-shade Grey profile selection, validation and primary-colored name | `terminal::tests::grey_profile_and_preview` |
 | Complete shared palette and explicit local RGB additions | `terminal::tests::complete_palette_uses_explicit_rgb` |
 | Shared dark-theme yellow, distinct from orange | `terminal::tests::yellow_uses_shared_dark_palette` |
 | Shared dark-theme orange, distinct from yellow | `terminal::tests::orange_uses_shared_dark_palette` |
@@ -44,6 +47,10 @@
 | File save/load and invalid configuration | `persistence::tests::save_load_and_invalid_file` |
 | Failed replacement cleans temporary files; invalid saves preserve destination | `persistence::tests::failed_replace_cleans_temporary_and_preserves_destination`, `invalid_save_preserves_existing_settings` |
 
+| Rain preserves default/custom terminal backgrounds in both themes | `terminal::tests::rain_preserves_terminal_background_in_both_themes` |
+| Cached reduced-color fades match uncached colors across palettes, themes, highlights and trace lengths; repeated renders reuse entries; truecolor bypasses cache | `terminal::tests::cached_fades_preserve_exact_colors_and_reuse_entries` |
+| Theme reversal, visible tail in RGB/256/ANSI palettes, fade midpoint, highlight contrast, reduced-depth bounds and environment detection | `terminal::tests::fades_follow_theme_and_capability` |
+
 Gaps: additional exact frame fixtures, randomized simulation time partitions,
 and terminal restoration under real terminal errors. These remain work before release. Presets, file
 watching and additional appearance profiles are deferred.
@@ -52,7 +59,7 @@ Manual checks proposed (not run by the agent): start in a terminal, toggle `?`,
 resize including a very small window, change settings, pause/resume, exit via each
 supported key, restart to check persistence, and compare both speed mappings.
 
-Milestone validation: 29 isolated unit tests pass; formatting, Clippy and build
+3.2.0 preparation: 62 isolated unit tests pass; formatting, Clippy and packaged build
 pass. Developer visual feedback accepted the green/highlight combination, live
 controls, Braille chart and resize behavior. The agent did not run interactive
 terminal checks. Remaining gaps above are release follow-up work.

@@ -76,7 +76,7 @@ const ALPHABETS: [&str; 14] = [
 ];
 const PALETTES: [(&str, &str); 11] = [
     ("Green", "gG"),
-    ("Rainbow", "roygcbm"),
+    ("Rainbow", "roygbm"),
     ("Purple-green-blue", "mgb"),
     ("Orange-green-blue", "ogb"),
     ("Christmas", "rgw"),
@@ -201,6 +201,7 @@ fn color(c: char) -> Color {
     Color::Rgb(r, g, b)
 }
 
+#[cfg(test)]
 fn brighten(c: Color) -> Color {
     match c {
         Color::Rgb(r, g, b) => {
@@ -210,18 +211,164 @@ fn brighten(c: Color) -> Color {
         _ => c,
     }
 }
-/// Explicit shading avoids emulator-dependent SGR dim behavior for truecolor.
-fn tail_color(c: Color) -> Color {
-    match c {
-        Color::Rgb(r, g, b) => {
-            let shade = |v: u8| (v as f64 * 0.6).round() as u8;
-            Color::Rgb(shade(r), shade(g), shade(b))
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+pub enum Theme {
+    Auto,
+    Dark,
+    Light,
+}
+#[derive(Clone, Copy, Debug)]
+struct Appearance {
+    light: bool,
+    depth: u16,
+}
+impl Appearance {
+    fn detect(theme: Theme, term: &str, colorterm: &str, background: &str) -> Self {
+        let light = match theme {
+            Theme::Light => true,
+            Theme::Dark => false,
+            Theme::Auto => background
+                .rsplit(';')
+                .next()
+                .and_then(|v| v.parse::<u8>().ok())
+                .is_some_and(|v| matches!(v, 7 | 9..=15)),
+        };
+        let depth = if matches!(
+            colorterm.to_ascii_lowercase().as_str(),
+            "truecolor" | "24bit"
+        ) || term.contains("direct")
+        {
+            24
+        } else if term.contains("256color") {
+            256
+        } else {
+            16
+        };
+        Self { light, depth }
+    }
+    #[cfg(test)]
+    fn foreground(self, base: Color, progress: f64, accent: bool) -> Color {
+        self.foreground_with(base, progress, accent, |rgb, trailing| {
+            self.quantize(rgb, trailing)
+        })
+    }
+    fn foreground_with(
+        self,
+        base: Color,
+        progress: f64,
+        accent: bool,
+        mut reduced: impl FnMut([u8; 3], bool) -> Color,
+    ) -> Color {
+        let Color::Rgb(r, g, b) = base else {
+            return base;
+        };
+        let head = if self.light { 0. } else { 255. };
+        let p = progress.clamp(0., 1.);
+        let channel = |v: u8| {
+            let value = if accent {
+                head * 0.75 + v as f64 * 0.25
+            } else if p <= 0.3 {
+                head + (v as f64 - head) * p / 0.3
+            } else {
+                // Retain 15% of the primary color, with a small contrast floor
+                // even for a primary color matching the fade endpoint.
+                let endpoint = if self.light { 243. } else { 12. };
+                v as f64 + (endpoint - v as f64) * 0.85 * (p - 0.3) / 0.7
+            };
+            value.round() as u8
+        };
+        let rgb = [channel(r), channel(g), channel(b)];
+        if self.depth == 24 {
+            return Color::Rgb(rgb[0], rgb[1], rgb[2]);
         }
-        _ => c,
+        reduced(rgb, p > 0.3)
+    }
+    fn quantize(self, rgb: [u8; 3], trailing: bool) -> Color {
+        let count = if self.depth == 256 { 256 } else { 16 };
+        let index = (0..count)
+            // Quantization must not erase the faint trailing glyphs.
+            .filter(|&i| !trailing || indexed_rgb(i as u8) != [if self.light { 255 } else { 0 }; 3])
+            .min_by_key(|&i| {
+                let c = indexed_rgb(i as u8);
+                rgb.iter()
+                    .zip(c)
+                    .map(|(&a, b)| (a as i32 - b as i32).pow(2))
+                    .sum::<i32>()
+            })
+            .unwrap();
+        Color::Indexed(index as u8)
     }
 }
+/// Cache exact rounded fade colors, rather than sampling progress into buckets.
+/// Owned by the renderer so entries survive frames and live palette changes.
+struct RainColors {
+    appearance: Appearance,
+    reduced: std::cell::RefCell<std::collections::HashMap<([u8; 3], bool), Color>>,
+}
+impl RainColors {
+    fn new(appearance: Appearance) -> Self {
+        Self {
+            appearance,
+            reduced: Default::default(),
+        }
+    }
+    fn foreground(&self, base: Color, progress: f64, accent: bool) -> Color {
+        self.appearance
+            .foreground_with(base, progress, accent, |rgb, trailing| {
+                *self
+                    .reduced
+                    .borrow_mut()
+                    .entry((rgb, trailing))
+                    .or_insert_with(|| self.appearance.quantize(rgb, trailing))
+            })
+    }
+}
+fn indexed_rgb(i: u8) -> [u8; 3] {
+    const BASIC: [[u8; 3]; 16] = [
+        [0, 0, 0],
+        [128, 0, 0],
+        [0, 128, 0],
+        [128, 128, 0],
+        [0, 0, 128],
+        [128, 0, 128],
+        [0, 128, 128],
+        [192, 192, 192],
+        [128, 128, 128],
+        [255, 0, 0],
+        [0, 255, 0],
+        [255, 255, 0],
+        [0, 0, 255],
+        [255, 0, 255],
+        [0, 255, 255],
+        [255, 255, 255],
+    ];
+    match i {
+        0..=15 => BASIC[i as usize],
+        16..=231 => {
+            let n = i - 16;
+            let level = |v: u8| if v == 0 { 0 } else { 55 + 40 * v };
+            [level(n / 36), level(n / 6 % 6), level(n % 6)]
+        }
+        _ => [8 + 10 * (i - 232); 3],
+    }
+}
+#[cfg(test)]
 struct Rain<'a>(&'a Scene);
+struct ThemedRain<'a>(&'a Scene, &'a RainColors);
+#[cfg(test)]
 impl Widget for Rain<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        ThemedRain(
+            self.0,
+            &RainColors::new(Appearance {
+                light: false,
+                depth: 24,
+            }),
+        )
+        .render(area, buf);
+    }
+}
+impl Widget for ThemedRain<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         for sample in termatrix::projection::orthographic(self.0) {
             let x = area.x as usize + sample.column * 2;
@@ -230,14 +377,15 @@ impl Widget for Rain<'_> {
             }
             let y = area.y + sample.row as u16;
             use termatrix::projection::Highlight;
-            let style = match sample.highlight {
-                Highlight::Head => Style::default().fg(color('w')).add_modifier(Modifier::BOLD),
-                Highlight::Tail => Style::default().fg(tail_color(color(sample.color))),
-                Highlight::Accent => Style::default()
-                    .fg(brighten(color(sample.color)))
-                    .add_modifier(Modifier::BOLD),
-                Highlight::Body => Style::default().fg(color(sample.color)),
-            };
+            let emphasized = matches!(sample.highlight, Highlight::Head | Highlight::Accent);
+            let mut style = Style::default().fg(self.1.foreground(
+                color(sample.color),
+                sample.progress,
+                sample.highlight == Highlight::Accent,
+            ));
+            if emphasized {
+                style = style.add_modifier(Modifier::BOLD);
+            }
             buf.set_string(x as u16, y, "  ", Style::default());
             if sample.symbol.width().is_some_and(|w| w > 0 && w <= 2) {
                 buf.set_string(x as u16, y, sample.symbol.to_string(), style);
@@ -351,6 +499,46 @@ impl Controls<'_> {
                         if enabled { "On" } else { "Off" },
                         Style::default().fg(if enabled { color('g') } else { color('s') }),
                     ));
+                }
+                10 if matches!(
+                    self.settings.colors.as_str(),
+                    "gG" | "bB" | "sS" | "rR" | "mM" | "yY" | "oO"
+                ) =>
+                {
+                    let primary = self.settings.colors.chars().next().unwrap();
+                    spans.push(Span::styled(
+                        value(self.settings, i),
+                        Style::default().fg(color(primary)),
+                    ));
+                }
+                10 if PALETTES
+                    .iter()
+                    .any(|(_, codes)| *codes == self.settings.colors) =>
+                {
+                    let name = value(self.settings, i);
+                    if name.contains('-') {
+                        for (index, (part, code)) in name
+                            .split('-')
+                            .zip(self.settings.colors.chars())
+                            .enumerate()
+                        {
+                            if index > 0 {
+                                spans.push(Span::styled("-", grey));
+                            }
+                            spans.push(Span::styled(
+                                part.to_owned(),
+                                Style::default().fg(color(code)),
+                            ));
+                        }
+                    } else {
+                        for (letter, code) in name.chars().zip(self.settings.colors.chars().cycle())
+                        {
+                            spans.push(Span::styled(
+                                letter.to_string(),
+                                Style::default().fg(color(code)),
+                            ));
+                        }
+                    }
                 }
                 10 => {
                     spans.push(Span::raw(format!("{} · ", value(self.settings, i))));
@@ -655,7 +843,14 @@ fn change_profile(
     *saving = SaveState::default();
     Ok(())
 }
-pub fn run(mut s: Settings, mut path: PathBuf, seed: u64) -> io::Result<()> {
+pub fn run(mut s: Settings, mut path: PathBuf, seed: u64, theme: Theme) -> io::Result<()> {
+    let appearance = Appearance::detect(
+        theme,
+        &std::env::var("TERM").unwrap_or_default(),
+        &std::env::var("COLORTERM").unwrap_or_default(),
+        &std::env::var("COLORFGBG").unwrap_or_default(),
+    );
+    let rain_colors = RainColors::new(appearance);
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         let _ = disable_raw_mode();
@@ -704,7 +899,7 @@ pub fn run(mut s: Settings, mut path: PathBuf, seed: u64) -> io::Result<()> {
             let elapsed = now.duration_since(started).as_secs_f64();
             terminal.draw(|f| {
                 let (panel, canvas) = regions(f.area(), s.panel);
-                f.render_widget(Rain(&scene), canvas);
+                f.render_widget(ThemedRain(&scene, &rain_colors), canvas);
                 if s.panel {
                     let (controls, chart) = panel_regions(panel);
                     if let Some(area) = chart {
@@ -1189,6 +1384,76 @@ mod tests {
         assert_ne!(color('R'), color('r'));
     }
     #[test]
+    fn named_mixed_palettes_color_the_name_without_duplicate_labels() {
+        for (name, codes) in [
+            ("Rainbow", "roygbm"),
+            ("Christmas", "rgw"),
+            ("Orange-green-blue", "ogb"),
+        ] {
+            assert!(PALETTES.contains(&(name, codes)));
+            let settings = Settings {
+                colors: codes.into(),
+                ..Settings::default()
+            };
+            let controls = Controls {
+                settings: &settings,
+                selected: 10,
+                paused: false,
+                path: std::path::Path::new("default.toml"),
+                status: &SaveStatus::Config,
+                pending: false,
+            };
+            let lines = controls.lines(12);
+            let line = lines
+                .iter()
+                .find(|l| l.to_string().starts_with("> Palette:"))
+                .unwrap();
+            assert_eq!(line.to_string(), format!("> Palette: {name}"));
+            for code in codes.chars() {
+                assert!(line
+                    .spans
+                    .iter()
+                    .skip(2)
+                    .any(|span| span.style.fg == Some(color(code))));
+            }
+            if !name.contains('-') {
+                for (span, code) in line.spans.iter().skip(2).zip(codes.chars().cycle()) {
+                    assert_eq!(span.style.fg, Some(color(code)));
+                }
+            }
+        }
+    }
+    #[test]
+    fn individual_palette_previews_show_one_primary_name() {
+        for (name, codes) in PALETTES {
+            if !matches!(codes, "gG" | "bB" | "sS" | "rR" | "mM" | "yY" | "oO") {
+                continue;
+            }
+            let settings = Settings {
+                colors: codes.into(),
+                ..Settings::default()
+            };
+            let controls = Controls {
+                settings: &settings,
+                selected: 10,
+                paused: false,
+                path: std::path::Path::new("default.toml"),
+                status: &SaveStatus::Config,
+                pending: false,
+            };
+            let lines = controls.lines(12);
+            let line = lines
+                .iter()
+                .find(|line| line.to_string().starts_with("> Palette:"))
+                .unwrap();
+            assert_eq!(line.to_string(), format!("> Palette: {name}"));
+            assert_eq!(
+                line.spans.last().unwrap().style.fg,
+                Some(color(codes.chars().next().unwrap()))
+            );
+        }
+    }
+    #[test]
     fn grey_profile_and_preview() {
         let mut s = Settings {
             colors: "bB".into(),
@@ -1216,14 +1481,11 @@ mod tests {
             .iter()
             .find(|l| l.to_string().starts_with("> Palette:"))
             .unwrap();
-        assert_eq!(
-            palette.to_string(),
-            "> Palette: Grey · Light grey · Dark grey"
-        );
+        assert_eq!(palette.to_string(), "> Palette: Grey");
         assert!(palette
             .spans
             .iter()
-            .any(|s| s.content == "Light grey" && s.style.fg == Some(color('s'))));
+            .any(|s| s.content == "Grey" && s.style.fg == Some(color('s'))));
     }
     #[test]
     fn chart_layout_and_braille_rendering() {
@@ -1297,22 +1559,117 @@ mod tests {
             Rain(&scene).render(area, &mut buffer);
             let row = scene.traces[0].head_row() as u16;
             let base = color(code);
-            let Color::Rgb(r, g, b) = base else {
-                panic!("palette must be RGB")
+            let appearance = Appearance {
+                light: false,
+                depth: 24,
             };
-            let expected = Color::Rgb(
-                (r as f64 * 0.6).round() as u8,
-                (g as f64 * 0.6).round() as u8,
-                (b as f64 * 0.6).round() as u8,
-            );
-            assert_eq!(buffer[(0, row - 5)].fg, expected, "tail color {code}");
+            assert_ne!(buffer[(0, row - 5)].fg, Color::Rgb(0, 0, 0));
             assert!(!buffer[(0, row - 5)].modifier.contains(Modifier::DIM));
-            assert_eq!(buffer[(0, row - 1)].fg, base);
-            assert_eq!(buffer[(0, row)].fg, color('w'));
+            assert_eq!(
+                buffer[(0, row - 1)].fg,
+                appearance.foreground(base, 0.2, false)
+            );
+            assert_eq!(buffer[(0, row)].fg, Color::Rgb(255, 255, 255));
             assert!(buffer[(0, row)].modifier.contains(Modifier::BOLD));
-            assert_eq!(buffer[(0, row - 4)].fg, brighten(base));
+            assert_eq!(
+                buffer[(0, row - 4)].fg,
+                appearance.foreground(base, 0.8, true)
+            );
             assert!(buffer[(0, row - 4)].modifier.contains(Modifier::BOLD));
         }
+    }
+    #[test]
+    fn rain_preserves_terminal_background_in_both_themes() {
+        let scene = Scene::new(42);
+        let area = Rect::new(0, 0, 4, 4);
+        for light in [false, true] {
+            for background in [Color::Reset, Color::Rgb(23, 31, 42)] {
+                let mut buffer = Buffer::empty(area);
+                buffer.set_style(area, Style::default().bg(background));
+                ThemedRain(&scene, &RainColors::new(Appearance { light, depth: 24 }))
+                    .render(area, &mut buffer);
+                assert!(buffer.content.iter().all(|cell| cell.bg == background));
+            }
+        }
+    }
+    #[test]
+    fn cached_fades_preserve_exact_colors_and_reuse_entries() {
+        for light in [false, true] {
+            for depth in [16, 256, 24] {
+                let appearance = Appearance { light, depth };
+                let cache = RainColors::new(appearance);
+                for pass in 0..2 {
+                    let before = cache.reduced.borrow().len();
+                    for code in "bBcgGkmMrRwyYoOsS".chars() {
+                        for length in [1, 2, 4, 24, 127, 512] {
+                            for index in 0..length {
+                                let p = index as f64 / (length - 1).max(1) as f64;
+                                for accent in [false, true] {
+                                    assert_eq!(
+                                        cache.foreground(color(code), p, accent),
+                                        appearance.foreground(color(code), p, accent)
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    let after = cache.reduced.borrow().len();
+                    if pass == 1 {
+                        assert_eq!(before, after);
+                    }
+                    if depth == 24 {
+                        assert_eq!(after, 0);
+                    } else {
+                        assert!(after > 0);
+                    }
+                }
+            }
+        }
+    }
+    #[test]
+    fn fades_follow_theme_and_capability() {
+        for light in [false, true] {
+            let a = Appearance { light, depth: 24 };
+            let head = if light { 0 } else { 255 };
+            let tail = 255 - head;
+            for code in "gGrRbBmMyYoOsScwk".chars() {
+                let base = color(code);
+                assert_eq!(a.foreground(base, 0., false), Color::Rgb(head, head, head));
+                assert_eq!(a.foreground(base, 0.3, false), base);
+                assert_ne!(a.foreground(base, 1., false), Color::Rgb(tail, tail, tail));
+                assert_ne!(a.foreground(base, 0.15, false), base);
+                assert_ne!(
+                    a.foreground(base, 0.8, true),
+                    a.foreground(base, 0.8, false)
+                );
+                for depth in [16, 256] {
+                    for step in 0..=100 {
+                        let c =
+                            Appearance { light, depth }.foreground(base, step as f64 / 100., false);
+                        assert!(matches!(c, Color::Indexed(i) if (i as u16) < depth));
+                        if step == 100 {
+                            let Color::Indexed(i) = c else { unreachable!() };
+                            assert_ne!(indexed_rgb(i), [tail; 3]);
+                        }
+                    }
+                }
+            }
+        }
+        for (term, ct, depth) in [
+            ("xterm", "", 16),
+            ("xterm-256color", "", 256),
+            ("xterm", "truecolor", 24),
+            ("xterm-direct", "", 24),
+        ] {
+            assert_eq!(
+                Appearance::detect(Theme::Auto, term, ct, "0;15").depth,
+                depth
+            );
+        }
+        assert!(Appearance::detect(Theme::Auto, "", "", "0;15").light);
+        assert!(!Appearance::detect(Theme::Auto, "", "", "invalid").light);
+        assert!(!Appearance::detect(Theme::Dark, "", "", "0;15").light);
+        assert!(Appearance::detect(Theme::Light, "", "", "15;0").light);
     }
     #[test]
     fn green_shades_and_highlight_have_explicit_contrast() {
@@ -1490,14 +1847,11 @@ mod tests {
             .iter()
             .find(|l| l.to_string().starts_with("> Palette:"))
             .unwrap();
-        assert_eq!(
-            palette.to_string(),
-            "> Palette: Purple-green-blue · Purple · Green · Blue"
-        );
+        assert_eq!(palette.to_string(), "> Palette: Purple-green-blue");
         for (name, fg) in [
             ("Purple", color('m')),
-            ("Green", color('g')),
-            ("Blue", color('b')),
+            ("green", color('g')),
+            ("blue", color('b')),
         ] {
             assert!(palette
                 .spans
