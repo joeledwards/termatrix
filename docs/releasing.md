@@ -1,8 +1,9 @@
-# Release checks for 3.2.0
+# Release checks for 3.3.0
 
-Theme-aware gradients, automatic reduced-color adaptation with cached conversions,
-tuned fresh defaults, and color previews within palette names. Saved preferences
-remain supported. Palette management is deferred to the [follow-up plan](palette-manager-plan.md).
+Shared custom palette management, visibility controls, and live previews via `c`.
+Profiles retain raw color codes and remain compatible with previous releases.
+See the [palette guide](guide.md#palette-manager) and
+[implementation notes](palette-manager-plan.md).
 
 ## Local checks
 
@@ -36,9 +37,32 @@ after pushing. A screenshot records a particular configuration; panel details ma
 change in later builds.
 
 See [coverage](coverage.md) for remaining test gaps. Profile rename/delete, graphical
-frontends and custom palette management remain future work.
+frontends and arbitrary RGB palette editing remain future work.
 
-## Preparation evidence (3.2.0)
+## Preparation evidence (3.3.0)
+
+- All 69 isolated unit tests pass offline with locked dependencies.
+- Formatting, Clippy with warnings denied, build and diff whitespace checks pass.
+- Offline locked package verification passes (26 files), including a packaged build.
+  Package contents include `src/palettes.rs`, the guide and implementation notes;
+  no local settings or build artifacts are included.
+- Developer feedback accepted the palette manager. The agent has not run
+  interactive terminal checks; proposed checks follow below.
+- Registry-connected publish dry run, publication, pushing and tagging have not
+  been run by the agent. Use the maintainer's private publishing credential context.
+
+## Palette-manager manual checks
+
+Proposed for the developer; not run by the agent:
+
+- Open `c`, navigate and preview palettes; cancel and confirm the original returns.
+- Create a weighted custom palette, edit it, apply it and restart to check persistence.
+- Hide built-ins/custom palettes and verify cycling skips them across profiles.
+- Confirm hidden palettes still load, and editing/deleting entries preserves saved colors.
+- Check delete confirmation, last-visible protection and errors for invalid codes/names.
+- Resize the manager, preview while paused, and quit via Ctrl+C to check restoration.
+
+## Previous release preparation evidence (3.2.0)
 
 - All 62 isolated unit tests pass with offline locked dependencies.
 - Formatting and Clippy with warnings denied pass; diff whitespace checks pass.

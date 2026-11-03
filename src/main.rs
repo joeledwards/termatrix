@@ -1,4 +1,5 @@
 mod metrics;
+mod palettes;
 mod persistence;
 mod profiles;
 mod terminal;

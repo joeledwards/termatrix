@@ -197,3 +197,50 @@ is 0.05, and the refresh cap is 60 Hz. The palette is Green (`gG`), alphabet
 is Special (Katakana), individual glyph colors are off, and highlights occur
 with 2% probability. Chart compression is 6 and the controls panel starts visible.
 Saved preferences override defaults; omitted settings use these defaults.
+
+## Palette manager
+
+Press `c` to manage the shared palette collection. The manager shows `[x]` for
+visible palettes and `[ ]` for hidden ones. Use ↑/↓ to navigate and preview the
+selected palette on the rain, Enter to apply it, or Esc (or `c`) to return without
+changing your active palette. The animation keeps running; a paused scene also
+updates its preview. Ctrl+C still quits.
+
+- Space toggles visibility in the Palette setting's left/right cycle. Hidden
+  palettes remain selectable in the manager and load normally from profiles.
+  At least one palette must remain visible.
+- `n` creates a palette using the active colors as its starting point. Type a name,
+  press Tab to edit color codes, and press Enter to save. Tab or ↑/↓ switches fields;
+  Backspace edits and Esc cancels. Names must be unique ignoring case, have 1–64
+  printable characters, and have no surrounding spaces.
+- Codes are `bBcgGkmMrRwyYoOsS`, as in existing `--colors` and profile settings.
+  Use 1–256 codes; repetitions provide weight (for example `rrrg` gives red
+  three quarters of the choices). Invalid colors produce a save error.
+- `e` edits a custom palette. `d` requests deletion; `y` confirms and any other
+  key cancels. Built-ins cannot be edited or deleted.
+
+The catalog is `termatrix/palettes.toml` in the platform configuration directory
+(the same root that normally contains `profiles/`). It is shared even when
+`--config` selects a profile elsewhere. Missing catalogs use the built-ins with
+all entries visible; merely opening the manager does not create a file.
+Changes save immediately using atomic replacement. Errors keep the previous
+catalog and show a message. Profile autosave and catalog saves are independent.
+
+Profiles and CLI overrides continue storing raw color codes, not catalog names.
+Editing or deleting a custom palette does not change already saved or active
+profile colors; select the updated palette and let the profile save to adopt it.
+Equivalent code sequences are allowed under different names; the panel and
+manager initially identify the first matching catalog entry. Unknown sequences
+remain usable as custom colors. Hiding never rewrites a profile.
+
+Example catalog (built-ins are implicit):
+
+```toml
+hidden = ["Christmas", "Grey"]
+
+[[custom]]
+name = "Sunset"
+colors = "rrroY"
+```
+
+Arbitrary RGB hex colors are deferred.

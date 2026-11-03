@@ -24,6 +24,7 @@ visually checked by the developer on their terminal. Run `termatrix --help` for 
 | --- | --- |
 | `?` | Show or hide controls |
 | `p` | Select or create a configuration profile |
+| `c` | Manage palettes and choose which appear in cycling |
 | `↑` / `↓` | Select a setting |
 | `←` / `→` | Adjust the selected setting |
 | Space | Pause or resume |
@@ -71,6 +72,15 @@ and press Enter to load it. Press `n` inside the picker to save your current
 settings under a new name, or Esc to return to the animation.
 
 ![Profile picker with colorful Matrix rain and saved profiles](https://raw.githubusercontent.com/joeledwards/termatrix/master/docs/images/termatrix-3-profiles.png)
+
+## Custom palettes
+
+Press `c` to open the palette manager. Use `n` to create a named palette from
+existing color codes, `e` to edit a custom palette, and Space to show or hide a
+palette in the Palette setting. Names preview their colors, and the rain previews
+selections live. Enter applies a palette; Esc returns without changing your choice.
+Custom palettes support repeated codes for weighting. Built-ins can be hidden;
+custom palettes can also be deleted. See the [palette guide](https://github.com/joeledwards/termatrix/blob/master/docs/guide.md#palette-manager).
 
 ## Development
 

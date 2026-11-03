@@ -74,19 +74,7 @@ const ALPHABETS: [&str; 14] = [
     "special",
     "symbol",
 ];
-const PALETTES: [(&str, &str); 11] = [
-    ("Green", "gG"),
-    ("Rainbow", "roygbm"),
-    ("Purple-green-blue", "mgb"),
-    ("Orange-green-blue", "ogb"),
-    ("Christmas", "rgw"),
-    ("Blue", "bB"),
-    ("Grey", "sS"),
-    ("Red", "rR"),
-    ("Purple", "mM"),
-    ("Yellow", "yY"),
-    ("Orange", "oO"),
-];
+const PALETTES: [(&str, &str); 11] = crate::palettes::BUILTINS;
 fn value(s: &Settings, i: usize) -> String {
     match i {
         0 => format!("{:.2}", s.min_speed),
@@ -158,7 +146,7 @@ fn edit(s: &mut Settings, i: usize, d: f64) {
     }
 }
 // Dark-theme artistic palette. All foregrounds are explicit RGB, never ANSI names.
-fn color(c: char) -> Color {
+pub(crate) fn color(c: char) -> Color {
     use term_colors::{Color as Hue, Depth, Palette, Theme};
     static PALETTE: std::sync::OnceLock<Palette> = std::sync::OnceLock::new();
     let hue = match c {
@@ -447,6 +435,7 @@ impl SaveState {
     }
 }
 struct Controls<'a> {
+    catalog: Option<&'a crate::palettes::Catalog>,
     settings: &'a Settings,
     selected: usize,
     paused: bool,
@@ -463,6 +452,7 @@ impl Controls<'_> {
         for (key, meaning) in [
             ("?", " controls | "),
             ("p", " profiles | "),
+            ("c", " palettes | "),
             ("↑↓", " select "),
             ("←→", " adjust | "),
             ("Space", " pause | "),
@@ -500,74 +490,12 @@ impl Controls<'_> {
                         Style::default().fg(if enabled { color('g') } else { color('s') }),
                     ));
                 }
-                10 if matches!(
-                    self.settings.colors.as_str(),
-                    "gG" | "bB" | "sS" | "rR" | "mM" | "yY" | "oO"
-                ) =>
-                {
-                    let primary = self.settings.colors.chars().next().unwrap();
-                    spans.push(Span::styled(
-                        value(self.settings, i),
-                        Style::default().fg(color(primary)),
-                    ));
-                }
-                10 if PALETTES
-                    .iter()
-                    .any(|(_, codes)| *codes == self.settings.colors) =>
-                {
-                    let name = value(self.settings, i);
-                    if name.contains('-') {
-                        for (index, (part, code)) in name
-                            .split('-')
-                            .zip(self.settings.colors.chars())
-                            .enumerate()
-                        {
-                            if index > 0 {
-                                spans.push(Span::styled("-", grey));
-                            }
-                            spans.push(Span::styled(
-                                part.to_owned(),
-                                Style::default().fg(color(code)),
-                            ));
-                        }
-                    } else {
-                        for (letter, code) in name.chars().zip(self.settings.colors.chars().cycle())
-                        {
-                            spans.push(Span::styled(
-                                letter.to_string(),
-                                Style::default().fg(color(code)),
-                            ));
-                        }
-                    }
-                }
                 10 => {
-                    spans.push(Span::raw(format!("{} · ", value(self.settings, i))));
-                    for (index, c) in self.settings.colors.chars().enumerate() {
-                        if index > 0 {
-                            spans.push(Span::styled(" · ", grey));
-                        }
-                        let name = match c {
-                            'b' => "Blue",
-                            'B' => "Dark blue",
-                            'c' => "Cyan",
-                            'g' => "Green",
-                            'G' => "Dark green",
-                            'k' => "Black",
-                            'm' => "Purple",
-                            'M' => "Dark purple",
-                            'r' => "Red",
-                            'R' => "Dark red",
-                            'w' => "White",
-                            's' => "Light grey",
-                            'S' => "Dark grey",
-                            'y' => "Yellow",
-                            'Y' => "Dark yellow",
-                            'o' => "Orange",
-                            'O' => "Dark orange",
-                            _ => "?",
-                        };
-                        spans.push(Span::styled(name, Style::default().fg(color(c))));
-                    }
+                    let name = self
+                        .catalog
+                        .and_then(|catalog| catalog.label(&self.settings.colors))
+                        .unwrap_or_else(|| value(self.settings, i));
+                    spans.extend(crate::palettes::preview(&name, &self.settings.colors));
                 }
                 _ => spans.push(Span::styled(
                     value(self.settings, i),
@@ -850,6 +778,12 @@ pub fn run(mut s: Settings, mut path: PathBuf, seed: u64, theme: Theme) -> io::R
         &std::env::var("COLORTERM").unwrap_or_default(),
         &std::env::var("COLORFGBG").unwrap_or_default(),
     );
+    let catalog_path = directories::ProjectDirs::from("", "", "termatrix")
+        .ok_or_else(|| io::Error::other("cannot locate palette configuration directory"))?
+        .config_dir()
+        .join("palettes.toml");
+    let mut catalog = crate::palettes::Catalog::load(&catalog_path)?;
+    let mut palette_manager: Option<crate::palettes::Manager> = None;
     let rain_colors = RainColors::new(appearance);
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
@@ -895,7 +829,13 @@ pub fn run(mut s: Settings, mut path: PathBuf, seed: u64, theme: Theme) -> io::R
             scene.traces.len(),
         );
         if now >= next_frame {
-            scene.refresh_colors(&s);
+            let mut preview = s.clone();
+            if let Some(manager) = &palette_manager {
+                if let Some(codes) = manager.preview_codes(&catalog) {
+                    preview.colors = codes.into();
+                }
+            }
+            scene.refresh_colors(&preview);
             let elapsed = now.duration_since(started).as_secs_f64();
             terminal.draw(|f| {
                 let (panel, canvas) = regions(f.area(), s.panel);
@@ -915,6 +855,7 @@ pub fn run(mut s: Settings, mut path: PathBuf, seed: u64, theme: Theme) -> io::R
                     }
                     f.render_widget(
                         Controls {
+                            catalog: Some(&catalog),
                             settings: &s,
                             selected,
                             paused,
@@ -924,6 +865,18 @@ pub fn run(mut s: Settings, mut path: PathBuf, seed: u64, theme: Theme) -> io::R
                         },
                         controls,
                     );
+                }
+                if let Some(manager) = &palette_manager {
+                    let a = f.area();
+                    let width = a.width.min(76);
+                    let height = a.height.min(22);
+                    let area = Rect::new(
+                        a.x + (a.width - width) / 2,
+                        a.y + (a.height - height) / 2,
+                        width,
+                        height,
+                    );
+                    manager.render(area, f.buffer_mut(), &catalog);
                 }
                 if let Some(picker) = &picker {
                     let a = f.area();
@@ -963,6 +916,26 @@ pub fn run(mut s: Settings, mut path: PathBuf, seed: u64, theme: Theme) -> io::R
             let input = event::read()?;
             if let Event::Key(k) = input {
                 if k.kind != KeyEventKind::Release
+                    && palette_manager.is_some()
+                    && !(k.code == KeyCode::Char('c')
+                        && k.modifiers.contains(KeyModifiers::CONTROL))
+                {
+                    let before = s.colors.clone();
+                    if palette_manager.as_mut().unwrap().key(
+                        k,
+                        &mut catalog,
+                        &catalog_path,
+                        &mut s.colors,
+                    ) {
+                        palette_manager = None;
+                    }
+                    if s.colors != before {
+                        saving.mark_changed();
+                    }
+                    next_frame = Instant::now();
+                    continue;
+                }
+                if k.kind != KeyEventKind::Release
                     && picker.is_some()
                     && !(k.code == KeyCode::Char('c')
                         && k.modifiers.contains(KeyModifiers::CONTROL))
@@ -997,6 +970,10 @@ pub fn run(mut s: Settings, mut path: PathBuf, seed: u64, theme: Theme) -> io::R
                 Event::Key(k) if k.kind != KeyEventKind::Release => match k.code {
                     KeyCode::Esc | KeyCode::Char('q') => break,
                     KeyCode::Char('c') if k.modifiers.contains(KeyModifiers::CONTROL) => break,
+                    KeyCode::Char('c') => {
+                        palette_manager = Some(crate::palettes::Manager::open(&catalog, &s.colors));
+                        next_frame = Instant::now();
+                    }
                     KeyCode::Char('p') => {
                         match crate::profiles::Picker::open(&path) {
                             Ok(opened) => picker = Some(opened),
@@ -1018,11 +995,16 @@ pub fn run(mut s: Settings, mut path: PathBuf, seed: u64, theme: Theme) -> io::R
                     }
                     KeyCode::Down if s.panel => selected = (selected + 1) % FIELDS.len(),
                     KeyCode::Left | KeyCode::Right if s.panel => {
-                        edit(
-                            &mut s,
-                            selected,
-                            if k.code == KeyCode::Right { 1. } else { -1. },
-                        );
+                        if selected == 10 {
+                            s.colors = catalog
+                                .cycle(&s.colors, if k.code == KeyCode::Right { 1 } else { -1 });
+                        } else {
+                            edit(
+                                &mut s,
+                                selected,
+                                if k.code == KeyCode::Right { 1. } else { -1. },
+                            );
+                        }
                         saving.mark_changed();
                     }
                     _ => {}
@@ -1184,6 +1166,7 @@ mod tests {
         let settings = Settings::default();
         assert_eq!(value(&settings, 8), "60 Hz");
         let controls = Controls {
+            catalog: None,
             settings: &settings,
             selected: 8,
 
@@ -1396,6 +1379,7 @@ mod tests {
                 ..Settings::default()
             };
             let controls = Controls {
+                catalog: None,
                 settings: &settings,
                 selected: 10,
                 paused: false,
@@ -1424,6 +1408,37 @@ mod tests {
         }
     }
     #[test]
+    fn shared_custom_palette_name_is_styled_in_controls_even_when_hidden() {
+        let mut catalog = crate::palettes::Catalog::default();
+        catalog.custom.push(crate::palettes::Palette {
+            name: "Sunset".into(),
+            colors: "rrroY".into(),
+        });
+        catalog.hidden.push("Sunset".into());
+        let settings = Settings {
+            colors: "rrroY".into(),
+            ..Settings::default()
+        };
+        let controls = Controls {
+            catalog: Some(&catalog),
+            settings: &settings,
+            selected: 10,
+            paused: false,
+            path: std::path::Path::new("default.toml"),
+            status: &SaveStatus::Config,
+            pending: false,
+        };
+        let lines = controls.lines(12);
+        let palette = lines
+            .iter()
+            .find(|l| l.to_string().starts_with("> Palette:"))
+            .unwrap();
+        assert_eq!(palette.to_string(), "> Palette: Sunset");
+        assert_eq!(palette.spans[2].style.fg, Some(color('r')));
+        assert_eq!(palette.spans[5].style.fg, Some(color('o')));
+        assert_eq!(palette.spans[6].style.fg, Some(color('Y')));
+    }
+    #[test]
     fn individual_palette_previews_show_one_primary_name() {
         for (name, codes) in PALETTES {
             if !matches!(codes, "gG" | "bB" | "sS" | "rR" | "mM" | "yY" | "oO") {
@@ -1434,6 +1449,7 @@ mod tests {
                 ..Settings::default()
             };
             let controls = Controls {
+                catalog: None,
                 settings: &settings,
                 selected: 10,
                 paused: false,
@@ -1468,6 +1484,7 @@ mod tests {
         assert_eq!(s.palette_color(0.25), 's');
         assert_eq!(s.palette_color(0.75), 'S');
         let controls = Controls {
+            catalog: None,
             settings: &s,
             selected: 10,
 
@@ -1766,6 +1783,7 @@ mod tests {
     fn control_styles_preserve_plain_text_and_selection() {
         let s = Settings::default();
         let controls = Controls {
+            catalog: None,
             settings: &s,
             selected: 0,
 
@@ -1812,6 +1830,7 @@ mod tests {
             ("", "default"),
         ] {
             let controls = Controls {
+                catalog: None,
                 settings: &settings,
                 selected: 0,
                 paused: false,
@@ -1834,6 +1853,7 @@ mod tests {
         };
         let failure = SaveStatus::Failed("disk full".into());
         let mut controls = Controls {
+            catalog: None,
             settings: &s,
             selected: 10,
 

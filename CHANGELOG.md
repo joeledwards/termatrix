@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.3.0
+
+- Add a `c` palette manager with named custom weighted color-code palettes, live
+  previews, editing and confirmed deletion.
+- Show/hide built-in and custom palettes when cycling; keep at least one visible.
+- Persist catalog and visibility in shared `palettes.toml`, independently of
+  profile color codes, with atomic saves and visible failure messages.
+
+Existing profiles and CLI color codes remain compatible. Catalog edits and
+deletions do not change already saved profile colors.
+
 ## 3.2.0
 
 - Fade traces from head through primary color toward black or white, preserving the terminal background, with light/dark theme

@@ -6,7 +6,7 @@
 - Complete coverage gaps in docs/coverage.md before release.
 - Graphical/OpenGL frontend using the library scene and projection boundary.
 
-## Next release
+## Implemented in 3.3.0
 
 - [Custom palette manager and palette visibility](docs/palette-manager-plan.md),
-  following the 3.2.0 gradient release.
+  following the 3.2.0 gradient release. Arbitrary RGB editing remains deferred.
